@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidBash — BBL|15 Auction Room</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js" onerror="window.MQTT_CDN1_FAILED=true"></script>
+<script>if(window.MQTT_CDN1_FAILED){document.write('<script src="https:\/\/unpkg.com\/mqtt@5.10.1\/dist\/mqtt.min.js" onerror="window.MQTT_FAILED=true"><\/script>')}</script>
+<style>
+:root{
+  --bg:#0a0e1a; --bg2:#111827; --panel:#161e31; --panel2:#1c2640;
+  --line:#263352; --text:#e8edf7; --dim:#8b98b8; --gold:#ffc93c;
+  --green:#2ee68a; --red:#ff5470; --accent:#4c8dff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:radial-gradient(1200px 600px at 70% -10%,#1a2547 0%,var(--bg) 55%);
+  color:var(--text); min-height:100vh;
+}
+#app{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+h1,h2,h3{font-weight:800;letter-spacing:.3px}
+button{
+  font-family:inherit;font-weight:700;border:none;border-radius:10px;cursor:pointer;
+  padding:10px 16px;font-size:14px;background:var(--panel2);color:var(--text);
+  border:1px solid var(--line);transition:transform .06s,filter .15s;
+}
+button:hover:not(:disabled){filter:brightness(1.2)}
+button:active:not(:disabled){transform:scale(.97)}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.primary{background:linear-gradient(135deg,#4c8dff,#7b5cff);border:none}
+button.gold{background:linear-gradient(135deg,#ffc93c,#ff8a3c);color:#1a1a1a;border:none}
+button.danger{background:transparent;border:1px solid var(--red);color:var(--red)}
+button.ghost{background:transparent}
+button.big{padding:15px 26px;font-size:17px;border-radius:14px}
+input,select{
+  font-family:inherit;background:var(--bg2);color:var(--text);border:1px solid var(--line);
+  border-radius:8px;padding:9px 12px;font-size:14px;outline:none;
+}
+input:focus,select:focus{border-color:var(--accent)}
+input[type=number]{width:80px}
+input[type=checkbox]{width:auto;accent-color:var(--accent);transform:scale(1.25)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:12px}
+.dim{color:var(--dim)}
+.small{font-size:12px}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.5px}
+.tag.role{background:#243154;color:#a9c2ff}
+.tag.os{background:#4a2b3f;color:#ff9ecb}
+.mt{margin-top:14px}.mb{margin-bottom:14px}
+.center{text-align:center}
+.logo{
+  font-size:clamp(30px,6vw,52px);font-weight:900;font-style:italic;letter-spacing:-1px;
+  background:linear-gradient(90deg,#ffc93c,#ff5470,#7b5cff,#4c8dff);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.sub{color:var(--dim);font-size:15px;margin-top:4px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.codebox{
+  font-size:34px;font-weight:900;letter-spacing:10px;padding:14px 10px 14px 20px;text-align:center;
+  background:var(--bg2);border:2px dashed var(--gold);border-radius:14px;color:var(--gold);
+  user-select:all;cursor:pointer;
+}
+.pcard{
+  border-radius:20px;padding:26px;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,var(--panel2) 0%,var(--panel) 100%);
+  border:1px solid var(--line);border-top:6px solid var(--tc,#4c8dff);
+}
+.pcard .teamglow{position:absolute;inset:0;background:radial-gradient(500px 220px at 85% 0%,var(--tc) 0%,transparent 65%);opacity:.18;pointer-events:none}
+.pname{font-size:clamp(26px,4.5vw,42px);font-weight:900;line-height:1.05}
+.pteam{font-weight:800;color:var(--tc,#4c8dff);margin-top:4px;font-size:15px}
+.bidnow{font-size:clamp(34px,6vw,56px);font-weight:900;color:var(--gold);line-height:1}
+.bidder{font-size:16px;font-weight:700;margin-top:2px}
+.timerwrap{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-top:14px}
+.timerbar{height:100%;background:linear-gradient(90deg,var(--green),var(--gold),var(--red));border-radius:99px;transition:width .25s linear}
+.mgrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.mcard.winning{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(255,201,60,.25)}
+.mcard.me{border-color:var(--accent)}
+.mname{font-weight:800;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.mmeta{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--dim)}
+.mmeta b{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.chip{font-size:10.5px;padding:2px 7px;border-radius:99px;background:var(--bg2);border-left:3px solid var(--cc,#555)}
+.offline-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.modal{
+  position:fixed;inset:0;background:rgba(5,8,16,.8);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;z-index:50;overflow:auto;
+}
+.modal .card{max-width:900px;width:100%}
+#toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{
+  background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:11px 20px;
+  border-radius:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:pop .25s ease;
+  max-width:90vw;text-align:center;
+}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.setitem{display:flex;flex-direction:column;gap:5px}
+.setitem label{font-size:12px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.bidbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:14px}
+.bidbtn{display:flex;flex-direction:column;gap:2px;align-items:center;padding:12px 8px;border-radius:12px}
+.bidbtn .nm{font-size:14px}.bidbtn .amt{font-size:18px;color:var(--gold)}.bidbtn .rem{font-size:11px;opacity:.75}
+.notice{background:#2a2140;border:1px solid #7b5cff;border-radius:10px;padding:10px 14px;font-size:13px}
+.warn{background:#3a2530;border-color:var(--red)}
+.scroll{overflow-x:auto}
+@media(max-width:640px){ .codebox{font-size:24px;letter-spacing:6px} }
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div id="app"></div>
+<script>
+"use strict";
+/* ================= DATA ================= */
+const TEAM_COLORS = {
+  "Adelaide Strikers":"#1B75BC","Brisbane Heat":"#00B3E3","Hobart Hurricanes":"#6A2A91",
+  "Melbourne Renegades":"#E21B23","Melbourne Stars":"#00843D","Perth Scorchers":"#FF7A00",
+  "Sydney Sixers":"#E5007E","Sydney Thunder":"#9FD400"
+};
+const PLAYERS = [
+ {"id":1,"name":"Travis Head","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":22.0},
+ {"id":2,"name":"Chris Lynn","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":14.0},
+ {"id":3,"name":"Matt Short","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":14.0},
+ {"id":4,"name":"Jamie Overton","team":"Adelaide Strikers","role":"AR","overseas":true,"basePrice":12.0},
+ {"id":5,"name":"Alex Carey","team":"Adelaide Strikers","role":"WK","overseas":false,"basePrice":12.0},
+ {"id":6,"name":"D'Arcy Short","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":7,"name":"Hasan Ali","team":"Adelaide Strikers","role":"BOWL","overseas":true,"basePrice":8.0},
+ {"id":8,"name":"Mackenzie Harvey","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":9,"name":"Jordan Buckingham","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":10,"name":"Cameron Boyce","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":11,"name":"Thomas Kelly","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":12,"name":"Harry Manenti","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":13,"name":"Harry Nielsen","team":"Adelaide Strikers","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":14,"name":"Jason Sangha","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":15,"name":"Liam Scott","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":16,"name":"Henry Thornton","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":17,"name":"Shaheen Shah Afridi","team":"Brisbane Heat","role":"BOWL","overseas":true,"basePrice":16.0},
+ {"id":18,"name":"Colin Munro","team":"Brisbane Heat","role":"BAT","overseas":true,"basePrice":10.0},
+ {"id":19,"name":"Michael Neser","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":20,"name":"Xavier Bartlett","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":21,"name":"Spencer Johnson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":22,"name":"Usman Khawaja","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":23,"name":"Max Bryant","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":24,"name":"Jack Wildermuth","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":25,"name":"Matthew Kuhnemann","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":26,"name":"Tom Alsop","team":"Brisbane Heat","role":"WK","overseas":false,"basePrice":6.0},
+ {"id":27,"name":"Jimmy Peirson","team":"Brisbane Heat","role":"WK","overseas":false,"basePrice":6.0},
+ {"id":28,"name":"Matt Renshaw","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":29,"name":"Mitchell Swepson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":30,"name":"Callum Vidler","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":31,"name":"Lachlan Hearne","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":4.0},
+ {"id":32,"name":"Hugh Weibgen","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":4.0},
+ {"id":33,"name":"Tom Balkin","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":34,"name":"Tim David","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":16.0},
+ {"id":35,"name":"Nathan Ellis","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":36,"name":"Ben McDermott","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":10.0},
+ {"id":37,"name":"Mitchell Owen","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":38,"name":"Beau Webster","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":39,"name":"Chris Jordan","team":"Hobart Hurricanes","role":"BOWL","overseas":true,"basePrice":10.0},
+ {"id":40,"name":"Rehan Ahmed","team":"Hobart Hurricanes","role":"AR","overseas":true,"basePrice":10.0},
+ {"id":41,"name":"Matthew Wade","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":8.0},
+ {"id":42,"name":"Rishad Hossain","team":"Hobart Hurricanes","role":"BOWL","overseas":true,"basePrice":8.0},
+ {"id":43,"name":"Riley Meredith","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":44,"name":"Nikhil Chaudhary","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":45,"name":"Jackson Bird","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":46,"name":"Billy Stanlake","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":47,"name":"Tim Ward","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":48,"name":"Jake Doran","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":49,"name":"Charlie Wakim","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":4.0},
+ {"id":50,"name":"Iain Carlisle","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":51,"name":"Adam Zampa","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":52,"name":"Jake Fraser-McGurk","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":12.0},
+ {"id":53,"name":"Will Sutherland","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":54,"name":"Tim Seifert","team":"Melbourne Renegades","role":"WK","overseas":true,"basePrice":10.0},
+ {"id":55,"name":"Jacob Bethell","team":"Melbourne Renegades","role":"AR","overseas":true,"basePrice":10.0},
+ {"id":56,"name":"Jason Behrendorff","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":57,"name":"Josh Brown","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":58,"name":"Caleb Jewell","team":"Melbourne Renegades","role":"BAT","overseas":true,"basePrice":8.0},
+ {"id":59,"name":"Hassan Khan","team":"Melbourne Renegades","role":"AR","overseas":true,"basePrice":8.0},
+ {"id":60,"name":"Nathan Lyon","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":61,"name":"Brendan Doggett","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":62,"name":"Tom Rogers","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":63,"name":"Gurinder Sandhu","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":64,"name":"Harry Dixon","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":65,"name":"Will Salzmann","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":66,"name":"Fergus O'Neill","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":67,"name":"Glenn Maxwell","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":18.0},
+ {"id":68,"name":"Marcus Stoinis","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":16.0},
+ {"id":69,"name":"Tom Curran","team":"Melbourne Stars","role":"AR","overseas":true,"basePrice":12.0},
+ {"id":70,"name":"Scott Boland","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":71,"name":"Joe Clarke","team":"Melbourne Stars","role":"WK","overseas":true,"basePrice":10.0},
+ {"id":72,"name":"Sam Hain","team":"Melbourne Stars","role":"BAT","overseas":true,"basePrice":8.0},
+ {"id":73,"name":"Peter Siddle","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":74,"name":"Hilton Cartwright","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":75,"name":"Sam Harper","team":"Melbourne Stars","role":"WK","overseas":false,"basePrice":6.0},
+ {"id":76,"name":"Joel Paris","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":77,"name":"Campbell Kellaway","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":78,"name":"Blake Macdonald","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":79,"name":"Liam Hatcher","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":80,"name":"Tom O'Connell","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":81,"name":"Austin Anlezark","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":82,"name":"Mitch Marsh","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":18.0},
+ {"id":83,"name":"Finn Allen","team":"Perth Scorchers","role":"WK","overseas":true,"basePrice":16.0},
+ {"id":84,"name":"Josh Inglis","team":"Perth Scorchers","role":"WK","overseas":false,"basePrice":14.0},
+ {"id":85,"name":"Jhye Richardson","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":86,"name":"Ashton Agar","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
+ {"id":87,"name":"Aaron Hardie","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
+ {"id":88,"name":"Lance Morris","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":12.0},
+ {"id":89,"name":"Andrew Tye","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":12.0},
+ {"id":90,"name":"Ashton Turner","team":"Perth Scorchers","role":"BAT","overseas":false,"basePrice":10.0},
+ {"id":91,"name":"Cooper Connolly","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":92,"name":"Laurie Evans","team":"Perth Scorchers","role":"BAT","overseas":true,"basePrice":8.0},
+ {"id":93,"name":"Nick Hobson","team":"Perth Scorchers","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":94,"name":"Brody Couch","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":95,"name":"Mahli Beardman","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":96,"name":"Joel Curtis","team":"Perth Scorchers","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":97,"name":"Steve Smith","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":20.0},
+ {"id":98,"name":"Babar Azam","team":"Sydney Sixers","role":"BAT","overseas":true,"basePrice":20.0},
+ {"id":99,"name":"Sam Curran","team":"Sydney Sixers","role":"AR","overseas":true,"basePrice":18.0},
+ {"id":100,"name":"Sean Abbott","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":101,"name":"Ben Dwarshuis","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":12.0},
+ {"id":102,"name":"Moises Henriques","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":103,"name":"Josh Philippe","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":10.0},
+ {"id":104,"name":"Kane Richardson","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":105,"name":"Jordan Silk","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":106,"name":"Jack Edwards","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":107,"name":"Hayden Kerr","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":108,"name":"Todd Murphy","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":109,"name":"Ben Manenti","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":110,"name":"Joel Davies","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":111,"name":"Lachlan Shaw","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":112,"name":"Jafer Chohan","team":"Sydney Sixers","role":"BOWL","overseas":true,"basePrice":4.0},
+ {"id":113,"name":"David Warner","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":18.0},
+ {"id":114,"name":"Cameron Green","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":16.0},
+ {"id":115,"name":"Lockie Ferguson","team":"Sydney Thunder","role":"BOWL","overseas":true,"basePrice":14.0},
+ {"id":116,"name":"Sam Billings","team":"Sydney Thunder","role":"WK","overseas":true,"basePrice":12.0},
+ {"id":117,"name":"Daniel Sams","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":10.0},
+ {"id":118,"name":"Chris Green","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":119,"name":"Wes Agar","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":120,"name":"Sam Konstas","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":121,"name":"Cameron Bancroft","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":122,"name":"Ollie Davies","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":123,"name":"Matt Gilkes","team":"Sydney Thunder","role":"WK","overseas":false,"basePrice":6.0},
+ {"id":124,"name":"Nathan McAndrew","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":125,"name":"Tanveer Sangha","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":126,"name":"Tom Andrews","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":5.0}
+];
+const ROLES = ["BAT","BOWL","AR","WK"];
+const ROLE_LABEL = {BAT:"Batter",BOWL:"Bowler",AR:"All-rounder",WK:"Keeper"};
+
+/* ================= APP STATE ================= */
+let S = null;            // authoritative game state (host / local)
+let CS = null;           // client copy of game state (join mode)
+let screen = "home";     // pre-game UI screen
+let NET = { mode:null, peer:null, conns:[], code:null, myId:0, myName:"", status:"", spectator:false };
+let UI = { pool:false, poolQ:"", poolTeam:"", poolRole:"", poolOS:false, poolSort:"price", editPlayers:false, lastError:"" };
+const LS_STATE="bbl15_state_v1", LS_CLIENT="bbl15_client_v1", LS_NET="bbl15_net_v1";
+
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => String(Math.round(n*100)/100);
+const money = n => "¤" + fmt(n);
+const st = () => NET.mode==="client" ? CS : S;
+const byId = (state,pid) => state.players.find(p=>p.id===pid);
+
+function defaultSettings(){
+  return {budget:100, squadSize:13, maxOverseas:4, minBAT:4, minBOWL:4, minAR:2, minWK:1,
+          increment:0.5, order:"random", marqueeFirst:true, timerOn:true, timerSecs:15};
+}
+function newState(managers, settings){
+  return {
+    phase:"lobby", settings,
+    players: JSON.parse(JSON.stringify(PLAYERS)),
+    managers, queue:[], qIndex:0, current:null,
+    sold:[], unsold:[], round:1
+  };
+}
+function makeManager(id,name){ return {id, name, squad:[], spent:0, connected:true, cid:null}; }
+
+/* ================= HELPERS: rules & validation ================= */
+const remBudget = m => st().settings.budget - m.spent;
+function roleCounts(state,m){
+  const c={BAT:0,BOWL:0,AR:0,WK:0};
+  m.squad.forEach(pid=>{const p=byId(state,pid); if(p)c[p.role]++});
+  return c;
+}
+const osCount=(state,m)=>m.squad.filter(pid=>{const p=byId(state,pid);return p&&p.overseas}).length;
+function minPoolPrice(state){
+  let min=Infinity;
+  for(const p of state.players){
+    if(!state.sold.some(s=>s.playerId===p.id)) min=Math.min(min,p.basePrice);
+  }
+  return isFinite(min)?min:4;
+}
+// Returns null if manager may bid `price` for `player`, else a reason string.
+function bidBlockReason(state,m,player,price){
+  const set=state.settings;
+  if(m.squad.length>=set.squadSize) return "Squad full";
+  if(price>state.settings.budget-m.spent) return "Not enough budget";
+  if(player.overseas && osCount(state,m)>=set.maxOverseas) return "Overseas quota full";
+  const slotsAfter=set.squadSize-m.squad.length-1;
+  const reserve=slotsAfter*minPoolPrice(state);
+  if(price>(set.budget-m.spent)-reserve) return "Must keep "+money(reserve)+" for remaining slots";
+  const c=roleCounts(state,m); c[player.role]++;
+  const needed=Math.max(0,set.minBAT-c.BAT)+Math.max(0,set.minBOWL-c.BOWL)+Math.max(0,set.minAR-c.AR)+Math.max(0,set.minWK-c.WK);
+  if(needed>slotsAfter) return "Would make role minimums impossible";
+  return null;
+}
+function nextBid(state){
+  const cur=state.current;
+  const p=byId(state,cur.playerId);
+  return cur.bidderId==null ? p.basePrice : Math.round((cur.bid+state.settings.increment)*100)/100;
+}
+
+/* ================= NETWORKING (MQTT over public brokers) ================= */
+const peerAvailable = () => !window.MQTT_FAILED && typeof mqtt!=="undefined";
+const BROKERS = ["wss://broker.emqx.io:8084/mqtt","wss://broker.hivemq.com:8884/mqtt","wss://test.mosquitto.org:8081"];
+const topicRoot = code => "bbl15auction/"+code.toUpperCase();
+const myCid = "c"+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+function genCode(){
+  const chars="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c="";
+  for(let i=0;i<5;i++)c+=chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+// Connect to the first reachable broker, then call onReady(client).
+function netConnect(brokerIdx,will,onReady){
+  if(brokerIdx>=BROKERS.length){ NET.status="Couldn't reach any relay server — check your internet."; render(); return; }
+  NET.status=brokerIdx===0?"Connecting…":"Trying backup server…"; render();
+  const client=mqtt.connect(BROKERS[brokerIdx],{
+    clientId:"bbl15_"+myCid, clean:true, connectTimeout:7000, reconnectPeriod:2000,
+    will:will||undefined
+  });
+  let opened=false;
+  client.on("connect",()=>{
+    if(!opened){ opened=true; NET.client=client; onReady(client); }
+    else { NET.status="live"; render(); } // reconnect after drop
+  });
+  client.on("offline",()=>{ if(opened){ NET.status="Reconnecting…"; render(); } });
+  client.on("error",()=>{ if(!opened){ client.end(true); netConnect(brokerIdx+1,will,onReady); } });
+  setTimeout(()=>{ if(!opened){ try{client.end(true);}catch(e){} netConnect(brokerIdx+1,will,onReady); } },8000);
+}
+const pub=(topic,obj,retain)=>{ try{ NET.client&&NET.client.publish(topic,JSON.stringify(obj),{retain:!!retain}); }catch(e){} };
+function packState(){ return JSON.parse(JSON.stringify(S)); }
+
+function hostRoom(code){
+  NET.mode="host"; NET.code=code.toUpperCase();
+  const T=topicRoot(NET.code);
+  netConnect(0,null,client=>{
+    NET.status="live";
+    localStorage.setItem(LS_NET,JSON.stringify({mode:"host",code:NET.code,name:NET.myName}));
+    client.subscribe(T+"/h");
+    client.on("message",(topic,buf)=>{
+      if(topic!==T+"/h")return;
+      let msg; try{ msg=JSON.parse(buf.toString()); }catch(e){ return; }
+      hostOnMessage(msg);
+    });
+    sync();
+  });
+}
+function hostOnMessage(msg){
+  if(!msg||typeof msg!=="object"||!msg.cid)return;
+  if(msg.t==="join"){
+    const name=String(msg.name||"").trim().slice(0,20)||"Player";
+    let m=S.managers.find(x=>x.name.toLowerCase()===name.toLowerCase());
+    if(m&&m.cid===msg.cid&&m.connected){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"you",id:m.id}); return; }
+    if(!m){
+      if(S.phase!=="lobby"){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"spectator"}); return; }
+      if(S.managers.length>=10){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"err",msg:"Room is full (10 managers max)"}); return; }
+      m=makeManager(Math.max(0,...S.managers.map(x=>x.id))+1,name);
+      S.managers.push(m);
+      toast(name+" joined the room");
+    } else {
+      toast(name+" reconnected");
+    }
+    m.connected=true; m.cid=msg.cid;
+    pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"you",id:m.id});
+    sync();
+    return;
+  }
+  if(msg.t==="leave"){
+    const m=S.managers.find(x=>x.cid===msg.cid);
+    if(m&&m.connected){ m.connected=false; toast(m.name+" disconnected"); sync(); }
+    return;
+  }
+  if(msg.t==="bid"){
+    const m=S.managers.find(x=>x.cid===msg.cid);
+    if(m)placeBid(m.id);
+    return;
+  }
+}
+function sendToManager(m,obj){ if(m&&m.cid)pub(topicRoot(NET.code)+"/c/"+m.cid,obj); }
+function sync(){
+  if(NET.mode==="host"||NET.mode==="local"){
+    try{ localStorage.setItem(LS_STATE,JSON.stringify({net:{mode:NET.mode,code:NET.code,myName:NET.myName},state:packState()})); }catch(e){}
+  }
+  if(NET.mode==="host") pub(topicRoot(NET.code)+"/s",{t:"state",state:packState()},true);
+  render();
+}
+let roomWait=null;
+function joinRoom(code,name){
+  NET.mode="client"; NET.code=code.toUpperCase(); NET.myName=name;
+  const T=topicRoot(NET.code);
+  netConnect(0,{topic:T+"/h",payload:JSON.stringify({t:"leave",cid:myCid}),qos:0,retain:false},client=>{
+    NET.status="live";
+    client.subscribe([T+"/s",T+"/c/"+myCid,T+"/toast"]);
+    client.on("message",(topic,buf)=>{
+      let msg; try{ msg=JSON.parse(buf.toString()); }catch(e){ return; }
+      if(topic===T+"/s"&&msg.t==="state"){
+        const hadState=!!CS; CS=msg.state;
+        if(!hadState){ clearTimeout(roomWait); pub(T+"/h",{t:"join",name:NET.myName,cid:myCid});
+          localStorage.setItem(LS_CLIENT,JSON.stringify({code:NET.code,name:NET.myName})); }
+        render(); return;
+      }
+      if(topic===T+"/c/"+myCid){
+        if(msg.t==="you"){ NET.myId=msg.id; NET.spectator=false; }
+        if(msg.t==="spectator"){ NET.spectator=true; toast("Auction already started — you're spectating"); }
+        if(msg.t==="err"){ NET.status=msg.msg; }
+        if(msg.t==="toast"){ toast(msg.msg); }
+        render(); return;
+      }
+      if(topic===T+"/toast"){ toast(msg.msg); }
+    });
+    clearTimeout(roomWait);
+    roomWait=setTimeout(()=>{ if(!CS){ NET.status="Room not found — double-check the code with your host."; render(); } },7000);
+  });
+}
+function hostToast(msg){ // toast locally + push to clients
+  toast(msg);
+  if(NET.mode==="host") pub(topicRoot(NET.code)+"/toast",{t:"toast",msg});
+}
+
+/* ================= GAME ACTIONS (host/local only) ================= */
+function buildQueue(){
+  const set=S.settings;
+  let pool=S.players.map(p=>p.id);
+  const price=(pid)=>byId(S,pid).basePrice;
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const order=a=> set.order==="price" ? a.sort((x,y)=>price(y)-price(x)) : shuffle(a);
+  if(set.marqueeFirst){
+    const mq=order(pool.filter(pid=>price(pid)>=14));
+    const rest=order(pool.filter(pid=>price(pid)<14));
+    pool=[...mq,...rest];
+  } else pool=order(pool);
+  S.queue=pool; S.qIndex=0;
+}
+function startAuction(){
+  if(S.managers.length<2){ UI.lastError="Need at least 2 managers."; render(); return; }
+  // sanity: budget must cover squad at min prices
+  const minTotal=S.settings.squadSize*Math.min(...S.players.map(p=>p.basePrice));
+  if(S.settings.budget<minTotal){ UI.lastError="Budget too small: "+S.settings.squadSize+" slots need at least "+money(minTotal)+"."; render(); return; }
+  UI.lastError="";
+  buildQueue(); S.phase="auction"; startCurrent();
+  hostToast("Auction started! "+S.queue.length+" players in the queue.");
+  sync();
+}
+function startCurrent(){
+  // find next player still needed & at least one manager with space
+  while(S.qIndex<S.queue.length){
+    const pid=S.queue[S.qIndex];
+    if(!S.sold.some(x=>x.playerId===pid) && byId(S,pid)){ break; }
+    S.qIndex++;
+  }
+  if(S.qIndex>=S.queue.length){ S.current=null; return; }
+  const p=byId(S,S.queue[S.qIndex]);
+  S.current={playerId:p.id, bid:p.basePrice, bidderId:null,
+             deadline:S.settings.timerOn?Date.now()+S.settings.timerSecs*1000:null};
+}
+function everyoneFull(){ return S.managers.every(m=>m.squad.length>=S.settings.squadSize); }
+function placeBid(mid){
+  if(!S||S.phase!=="auction"||!S.current)return;
+  const m=S.managers.find(x=>x.id===mid); if(!m)return;
+  if(S.current.bidderId===mid)return; // already highest
+  const p=byId(S,S.current.playerId);
+  const price=nextBid(S);
+  const block=bidBlockReason(S,m,p,price);
+  if(block){ if(NET.mode==="host"&&m.id!==NET.myId)sendToManager(m,{t:"toast",msg:"Bid blocked: "+block}); else toast("Bid blocked: "+block); return; }
+  S.current.bid=price; S.current.bidderId=mid;
+  if(S.settings.timerOn) S.current.deadline=Date.now()+S.settings.timerSecs*1000;
+  sync();
+}
+function sellCurrent(){
+  const cur=S.current; if(!cur)return;
+  if(cur.bidderId==null){ passCurrent(); return; }
+  const m=S.managers.find(x=>x.id===cur.bidderId);
+  const p=byId(S,cur.playerId);
+  m.squad.push(p.id); m.spent=Math.round((m.spent+cur.bid)*100)/100;
+  S.sold.push({playerId:p.id, managerId:m.id, price:cur.bid, round:S.round});
+  S.unsold=S.unsold.filter(x=>x!==p.id);
+  hostToast("SOLD! "+p.name+" → "+m.name+" for "+money(cur.bid));
+  S.qIndex++;
+  if(everyoneFull()){ finishAuction(); return; }
+  startCurrent(); sync();
+}
+function passCurrent(){
+  const cur=S.current; if(!cur)return;
+  const p=byId(S,cur.playerId);
+  if(!S.unsold.includes(p.id))S.unsold.push(p.id);
+  hostToast(p.name+" goes UNSOLD");
+  S.qIndex++; startCurrent(); sync();
+}
+function undoLast(){
+  const last=S.sold.pop(); if(!last)return;
+  const m=S.managers.find(x=>x.id===last.managerId);
+  m.squad=m.squad.filter(x=>x!==last.playerId);
+  m.spent=Math.round((m.spent-last.price)*100)/100;
+  if(S.phase==="results")S.phase="auction";
+  S.queue.splice(S.qIndex,0,last.playerId);
+  hostToast("Undo: "+byId(S,last.playerId).name+" returned to auction");
+  startCurrent(); sync();
+}
+function reauctionUnsold(){
+  if(!S.unsold.length)return;
+  S.queue=[...S.unsold]; S.unsold=[]; S.qIndex=0; S.round++;
+  hostToast("Re-auction round "+S.round+" — "+S.queue.length+" players back in!");
+  startCurrent(); sync();
+}
+function finishAuction(){
+  if(S.current&&!S.sold.some(x=>x.playerId===S.current.playerId)&&!S.unsold.includes(S.current.playerId))
+    S.unsold.push(S.current.playerId);
+  // everything still queued and never auctioned also counts as unsold
+  for(let i=S.qIndex;i<S.queue.length;i++){
+    const pid=S.queue[i];
+    if(!S.sold.some(x=>x.playerId===pid)&&!S.unsold.includes(pid))S.unsold.push(pid);
+  }
+  S.phase="results"; S.current=null; hostToast("Auction complete!"); sync();
+}
+function restartAll(){
+  if(!confirm("Restart and wipe this auction?"))return;
+  if(NET.mode==="host"&&NET.client){ try{ NET.client.publish(topicRoot(NET.code)+"/s","",{retain:true}); }catch(e){} }
+  localStorage.removeItem(LS_STATE); localStorage.removeItem(LS_NET);
+  setTimeout(()=>location.reload(),150);
+}
+
+/* timer loop (host/local resolves; everyone re-renders countdown) */
+setInterval(()=>{
+  const state=st();
+  if(!state||state.phase!=="auction"||!state.current)return;
+  if((NET.mode==="host"||NET.mode==="local") && state.current.deadline && Date.now()>state.current.deadline){
+    state.current.bidderId!=null ? sellCurrent() : passCurrent();
+    return;
+  }
+  if(state.current.deadline){
+    const el=document.getElementById("timerbar"), tl=document.getElementById("timerleft");
+    if(el){
+      const total=state.settings.timerSecs*1000;
+      const left=Math.max(0,state.current.deadline-Date.now());
+      el.style.width=(left/total*100)+"%";
+      if(tl)tl.textContent=Math.ceil(left/1000)+"s";
+    }
+  }
+},250);
+
+/* ================= EXPORT ================= */
+function download(name,text,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function exportCSV(){
+  const state=st();
+  let rows=[["Manager","Player","BBL Team","Role","Overseas","Price"]];
+  state.managers.forEach(m=>{
+    m.squad.forEach(pid=>{const p=byId(state,pid);
+      const s=state.sold.find(x=>x.playerId===pid);
+      rows.push([m.name,p.name,p.team,p.role,p.overseas?"Yes":"No",fmt(s?s.price:0)]);});
+  });
+  state.unsold.forEach(pid=>{const p=byId(state,pid);rows.push(["UNSOLD",p.name,p.team,p.role,p.overseas?"Yes":"No",""]);});
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+  download("bbl15-auction-results.csv",csv,"text/csv");
+}
+function exportJSON(){
+  const state=st();
+  const out={settings:state.settings,
+    managers:state.managers.map(m=>({name:m.name,spent:m.spent,remaining:state.settings.budget-m.spent,
+      squad:m.squad.map(pid=>{const p=byId(state,pid);const s=state.sold.find(x=>x.playerId===pid);
+        return {...p,price:s?s.price:0};})})),
+    unsold:state.unsold.map(pid=>byId(state,pid))};
+  download("bbl15-auction-results.json",JSON.stringify(out,null,2),"application/json");
+}
+
+/* ================= TOASTS ================= */
+function toast(msg){
+  const box=document.getElementById("toasts");
+  const el=document.createElement("div");el.className="toast";el.textContent=msg;
+  box.appendChild(el);
+  setTimeout(()=>{el.style.opacity="0";el.style.transition="opacity .4s";setTimeout(()=>el.remove(),400)},3200);
+}
+
+/* ================= RENDER ================= */
+function render(){
+  const app=document.getElementById("app");
+  const state=st();
+  let html="";
+  if(NET.mode==="client"){
+    html = !CS ? viewClientConnecting() :
+      CS.phase==="lobby" ? viewLobby(CS,false) :
+      CS.phase==="auction" ? viewAuction(CS,false) : viewResults(CS,false);
+  } else if(S){
+    html = S.phase==="lobby" ? viewLobby(S,true) :
+      S.phase==="auction" ? viewAuction(S,true) : viewResults(S,true);
+  } else {
+    html = screen==="home"?viewHome() : screen==="join"?viewJoin() : screen==="setup"?viewSetup() : viewHome();
+  }
+  if(UI.pool && state) html+=viewPool(state);
+  app.innerHTML=html;
+}
+
+function header(state,extra){
+  const code=NET.code?`<span class="tag" style="background:#3a3110;color:var(--gold);font-size:13px;letter-spacing:2px;cursor:pointer" onclick="copyLink()" title="Click to copy invite">ROOM ${esc(NET.code)}</span>`:"";
+  const netdot=NET.mode?(NET.status==="live"?`<span class="online-dot"></span>`:`<span class="offline-dot"></span> <span class="small dim">${esc(NET.status)}</span>`):"";
+  return `<div class="topbar">
+    <div class="row"><span style="font-weight:900;font-style:italic;font-size:20px">Bid<span style="color:var(--gold)">Bash</span></span> ${code} ${netdot}</div>
+    <div class="row">${extra||""}</div>
+  </div>`;
+}
+function copyLink(){
+  const link=location.origin.startsWith("http")?location.href.split("#")[0]+"#"+NET.code:NET.code;
+  navigator.clipboard&&navigator.clipboard.writeText(link).then(()=>toast("Invite copied: "+link)).catch(()=>toast("Room code: "+NET.code));
+}
+
+/* ---------- home / join / setup ---------- */
+function viewHome(){
+  const saved=localStorage.getItem(LS_STATE);
+  const p2p=peerAvailable();
+  return `
+  <div class="center" style="padding-top:7vh">
+    <div class="logo">BIDBASH</div>
+    <div class="sub">The Big Bash fantasy auction room — bid live with your mates.</div>
+    <div class="grid mt" style="max-width:420px;margin:26px auto;gap:14px">
+      ${saved?`<button class="gold big" onclick="resumeSaved()">⟳ Resume saved auction</button>`:""}
+      <button class="primary big" onclick="goSetup('host')" ${p2p?"":"disabled title='Online unavailable — no internet connection'"}>🏟 Host an online room</button>
+      <button class="big" onclick="goJoin()" ${p2p?"":"disabled"}>🎟 Join a room</button>
+      <button class="big" onclick="goSetup('local')">📱 Pass &amp; play (one device)</button>
+    </div>
+    <div class="small dim" style="max-width:520px;margin:20px auto">
+      126 players · 8 clubs · BBL|15 (2025-26). Squad data compiled from public sources mid-season —
+      hosts can edit players &amp; base prices before starting.
+    </div>
+  </div>`;
+}
+function goJoin(){
+  const remembered=JSON.parse(localStorage.getItem(LS_CLIENT)||"{}");
+  screen="join"; render();
+  setTimeout(()=>{
+    const hash=(location.hash||"").replace("#","").trim();
+    if(hash)document.getElementById("joincode").value=hash;
+    else if(remembered.code)document.getElementById("joincode").value=remembered.code;
+    if(remembered.name)document.getElementById("joinname").value=remembered.name;
+  },0);
+}
+function viewJoin(){
+  return `${header(null)}
+  <div class="card" style="max-width:430px;margin:8vh auto 0">
+    <h2>Join a room</h2>
+    <div class="grid mt">
+      <input id="joinname" maxlength="20" placeholder="Your name">
+      <input id="joincode" maxlength="5" placeholder="Room code (e.g. XK4P2)" style="text-transform:uppercase;letter-spacing:4px;font-weight:800">
+      <button class="primary big" onclick="doJoin()">Join room</button>
+      <button class="ghost" onclick="screen='home';render()">← Back</button>
+      ${NET.status&&NET.status!=="live"?`<div class="notice warn">${esc(NET.status)}</div>`:""}
+    </div>
+  </div>`;
+}
+function doJoin(){
+  const name=document.getElementById("joinname").value.trim();
+  const code=document.getElementById("joincode").value.trim().toUpperCase();
+  if(!name||code.length<4){ toast("Enter your name and the 5-character room code"); return; }
+  joinRoom(code,name);
+}
+function viewClientConnecting(){
+  return `${header(null)}
+  <div class="card center" style="max-width:430px;margin:10vh auto 0">
+    <h2>Joining room ${esc(NET.code||"")}…</h2>
+    <p class="dim mt">${esc(NET.status)}</p>
+    <button class="ghost mt" onclick="location.reload()">Cancel</button>
+  </div>`;
+}
+let setupMode="local";
+function goSetup(mode){ setupMode=mode; screen="setup"; render(); }
+function viewSetup(){
+  const isHost=setupMode==="host";
+  return `${header(null)}
+  <div class="card" style="max-width:640px;margin:4vh auto 0">
+    <h2>${isHost?"Host an online room":"Pass & play setup"}</h2>
+    <div class="grid mt">
+      <div class="setitem"><label>${isHost?"Your name (you're Manager 1)":"How many managers?"}</label>
+      ${isHost
+        ? `<input id="hostname" maxlength="20" placeholder="Your name">`
+        : `<div class="row"><input id="nmgrs" type="number" min="2" max="10" value="4" onchange="render_localnames(this.value)"></div>
+           <div id="localnames" class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div>`}
+      </div>
+      <button class="primary big" onclick="createGame()">${isHost?"Create room →":"Continue to lobby →"}</button>
+      <button class="ghost" onclick="screen='home';render()">← Back</button>
+      ${UI.lastError?`<div class="notice warn">${esc(UI.lastError)}</div>`:""}
+    </div>
+  </div>`;
+}
+function render_localnames(n){
+  n=Math.max(2,Math.min(10,parseInt(n)||4));
+  const box=document.getElementById("localnames"); if(!box)return;
+  let html="";
+  for(let i=0;i<n;i++){
+    const prev=document.getElementById("mn"+i);
+    html+=`<input id="mn${i}" maxlength="20" placeholder="Manager ${i+1}" value="${prev?esc(prev.value):""}">`;
+  }
+  box.innerHTML=html;
+}
+function createGame(){
+  UI.lastError="";
+  if(setupMode==="host"){
+    const name=(document.getElementById("hostname").value||"").trim();
+    if(!name){ UI.lastError="Enter your name."; render(); return; }
+    NET.myName=name; NET.myId=1;
+    S=newState([makeManager(1,name)],defaultSettings());
+    hostRoom(genCode());
+    sync();
+  } else {
+    NET.mode="local";
+    const n=Math.max(2,Math.min(10,parseInt(document.getElementById("nmgrs").value)||4));
+    const managers=[];
+    for(let i=0;i<n;i++){
+      const v=(document.getElementById("mn"+i)?.value||"").trim()||("Manager "+(i+1));
+      managers.push(makeManager(i+1,v));
+    }
+    S=newState(managers,defaultSettings());
+    sync();
+  }
+}
+function resumeSaved(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(LS_STATE));
+    S=saved.state; S.managers.forEach(m=>{m.connected=false;});
+    NET.myName=saved.net.myName||""; NET.myId=1;
+    if(saved.net.mode==="host"&&peerAvailable()){ hostRoom(saved.net.code||genCode()); }
+    else NET.mode="local";
+    if(NET.mode==="host")S.managers.forEach(m=>{if(m.name===NET.myName)m.connected=true;});
+    sync(); toast("Auction restored");
+  }catch(e){ toast("Couldn't restore save"); localStorage.removeItem(LS_STATE); }
+}
+
+/* ---------- lobby ---------- */
+function viewLobby(state,canEdit){
+  const set=state.settings;
+  const mgrs=state.managers.map(m=>`
+    <div class="mcard ${m.id===NET.myId&&NET.mode!=="local"?"me":""}">
+      <div class="mname">${esc(m.name)} ${NET.mode!=="local"?(m.connected||m.id===NET.myId&&NET.mode==="host"?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'):""}</div>
+      <div class="mmeta"><span>Budget <b>${money(set.budget)}</b></span>
+      ${canEdit&&state.managers.length>2&&NET.mode==="local"?`<button class="ghost small" style="padding:2px 8px" onclick="removeManager(${m.id})">✕</button>`:""}</div>
+    </div>`).join("");
+  const settingsPanel=canEdit?`
+    <div class="card mt"><h3>Auction rules</h3>
+      <div class="setgrid mt">
+        ${numSet("budget","Budget / manager",set.budget,50,250,5)}
+        ${numSet("squadSize","Squad size",set.squadSize,11,15,1)}
+        ${numSet("maxOverseas","Max overseas",set.maxOverseas,2,6,1)}
+        ${numSet("minBAT","Min batters",set.minBAT,0,8,1)}
+        ${numSet("minBOWL","Min bowlers",set.minBOWL,0,8,1)}
+        ${numSet("minAR","Min all-rounders",set.minAR,0,8,1)}
+        ${numSet("minWK","Min keepers",set.minWK,0,4,1)}
+        <div class="setitem"><label>Bid increment</label>
+          <select onchange="setRule('increment',parseFloat(this.value))">
+            ${[0.25,0.5,1].map(v=>`<option value="${v}" ${set.increment===v?"selected":""}>${fmt(v)}</option>`).join("")}
+          </select></div>
+        <div class="setitem"><label>Player order</label>
+          <select onchange="setRule('order',this.value)">
+            <option value="random" ${set.order==="random"?"selected":""}>Random</option>
+            <option value="price" ${set.order==="price"?"selected":""}>Base price (high → low)</option>
+          </select></div>
+        <div class="setitem"><label>Marquee round first (≥ ¤14)</label>
+          <input type="checkbox" ${set.marqueeFirst?"checked":""} onchange="setRule('marqueeFirst',this.checked)"></div>
+        <div class="setitem"><label>Bid timer</label>
+          <div class="row"><input type="checkbox" ${set.timerOn?"checked":""} onchange="setRule('timerOn',this.checked)">
+          <input type="number" min="5" max="120" value="${set.timerSecs}" onchange="setRule('timerSecs',Math.max(5,parseInt(this.value)||15))"> sec</div></div>
+      </div>
+    </div>`:"";
+  return `${header(state,`<button onclick="UI.pool=true;render()">Player pool</button>`)}
+  ${NET.mode==="host"?`
+    <div class="card center mb">
+      <div class="small dim" style="letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Share this code with your mates</div>
+      <div class="codebox" onclick="copyLink()" title="Click to copy">${esc(NET.code||"")}</div>
+      <div class="small dim mt">They open this same site and hit “Join a room”. Click the code to copy an invite link.</div>
+    </div>`:""}
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h3>Managers (${state.managers.length}/10)</h3>
+      ${NET.mode==="local"&&canEdit?`<button onclick="addLocalManager()">+ Add manager</button>`:""}
+    </div>
+    <div class="mgrgrid mt">${mgrs}</div>
+    ${NET.mode==="client"?`<p class="dim small mt">Waiting for the host to start the auction…</p>`:""}
+  </div>
+  ${settingsPanel}
+  ${canEdit?`
+    <div class="row mt" style="justify-content:space-between">
+      <button onclick="UI.editPlayers=true;UI.pool=true;render()">✎ Edit players &amp; prices</button>
+      <div class="row">
+        <button class="danger" onclick="restartAll()">Quit</button>
+        <button class="gold big" onclick="startAuction()">🔨 Start the auction</button>
+      </div>
+    </div>
+    ${UI.lastError?`<div class="notice warn mt">${esc(UI.lastError)}</div>`:""}
+    <div class="notice mt small">Heads-up: squads were compiled mid-season from public sources. Test stars (Smith, Head, Green, Marsh…) had limited BBL availability, and late signings may be missing — use <b>Edit players</b> to tweak before you start.</div>`:""}
+  `;
+}
+function numSet(key,label,val,min,max,step){
+  return `<div class="setitem"><label>${label}</label>
+    <input type="number" min="${min}" max="${max}" step="${step}" value="${val}"
+      onchange="setRule('${key}',Math.max(${min},Math.min(${max},parseFloat(this.value)||${val})))"></div>`;
+}
+function setRule(k,v){ S.settings[k]=v; sync(); }
+function addLocalManager(){
+  if(S.managers.length>=10)return;
+  const name=prompt("Manager name?","Manager "+(S.managers.length+1));
+  if(name===null)return;
+  S.managers.push(makeManager(Math.max(0,...S.managers.map(x=>x.id))+1,name.trim()||("Manager "+(S.managers.length+1))));
+  sync();
+}
+function removeManager(id){ S.managers=S.managers.filter(m=>m.id!==id); sync(); }
+
+/* ---------- auction ---------- */
+function viewAuction(state,canControl){
+  const set=state.settings;
+  if(!state.current) return viewRoundEnd(state,canControl);
+  const p=byId(state,state.current.playerId);
+  const tc=TEAM_COLORS[p.team]||"#4c8dff";
+  const cur=state.current;
+  const leader=cur.bidderId!=null?state.managers.find(m=>m.id===cur.bidderId):null;
+  const next=nextBid(state);
+  const left=state.queue.length-state.qIndex-1;
+  const isMarquee=p.basePrice>=14&&set.marqueeFirst&&state.round===1;
+
+  let bidControls="";
+  if(NET.mode==="local"){
+    bidControls=`<div class="bidbtns">`+state.managers.map(m=>{
+      const block=cur.bidderId===m.id?"Highest bidder":bidBlockReason(state,m,p,next);
+      return `<button class="bidbtn ${cur.bidderId===m.id?"gold":""}" ${block&&cur.bidderId!==m.id?`disabled title="${esc(block)}"`:cur.bidderId===m.id?"disabled":""} onclick="placeBid(${m.id})">
+        <span class="nm">${esc(m.name)}</span>
+        <span class="amt">${cur.bidderId===m.id?"LEADING":"Bid "+money(next)}</span>
+        <span class="rem">${money(set.budget-m.spent)} left · ${m.squad.length}/${set.squadSize}</span>
+      </button>`;}).join("")+`</div>`;
+  } else {
+    const me=state.managers.find(m=>m.id===NET.myId);
+    if(NET.spectator||!me){
+      bidControls=`<p class="dim center mt">You're spectating this auction.</p>`;
+    } else {
+      const block=cur.bidderId===me.id?null:bidBlockReason(state,me,p,next);
+      const leading=cur.bidderId===me.id;
+      bidControls=`<div class="center mt">
+        <button class="${leading?"gold":"primary"} big" style="min-width:240px" ${leading||block?"disabled":""}
+          onclick="${NET.mode==="host"?`placeBid(${me.id})`:"clientBid()"}">
+          ${leading?"👑 You're leading!":"Bid "+money(next)}
+        </button>
+        ${block&&!leading?`<div class="small dim mt">${esc(block)}</div>`:""}
+      </div>`;
+    }
+  }
+  const hostControls=canControl?`
+    <div class="row mt" style="justify-content:center">
+      <button class="gold" onclick="sellCurrent()">🔨 ${cur.bidderId!=null?"Sold!":"No bids — pass"}</button>
+      <button onclick="passCurrent()">Unsold / skip</button>
+      <button class="ghost" ${state.sold.length?"":"disabled"} onclick="undoLast()">↩ Undo last sale</button>
+      <button class="danger" onclick="finishAuction()">End auction</button>
+    </div>`:"";
+
+  return `${header(state,`
+      <span class="small dim">${left} more in queue · round ${state.round}</span>
+      <button onclick="UI.pool=true;render()">Player pool</button>`)}
+  <div class="pcard" style="--tc:${tc}">
+    <div class="teamglow"></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        ${isMarquee?`<span class="tag" style="background:#3a3110;color:var(--gold)">★ MARQUEE</span>`:""}
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pteam">${esc(p.team)}</div>
+        <div class="row mt">
+          <span class="tag role">${ROLE_LABEL[p.role]||p.role}</span>
+          ${p.overseas?`<span class="tag os">✈ OVERSEAS</span>`:""}
+          <span class="tag" style="background:#1e2b25;color:#7be6b2">Base ${money(p.basePrice)}</span>
+        </div>
+      </div>
+      <div class="center">
+        <div class="small dim" style="text-transform:uppercase;letter-spacing:2px">${leader?"Current bid":"Opening price"}</div>
+        <div class="bidnow">${money(cur.bid)}</div>
+        <div class="bidder">${leader?"👑 "+esc(leader.name):"— no bids yet —"}</div>
+        ${cur.deadline?`<div class="small dim mt" id="timerleft"></div>`:""}
+      </div>
+    </div>
+    ${cur.deadline?`<div class="timerwrap"><div class="timerbar" id="timerbar" style="width:100%"></div></div>`:""}
+    ${bidControls}
+    ${hostControls}
+  </div>
+  <h3 class="mt mb">Managers</h3>
+  <div class="mgrgrid">${state.managers.map(m=>mgrCard(state,m,cur.bidderId===m.id)).join("")}</div>`;
+}
+function clientBid(){ pub(topicRoot(NET.code)+"/h",{t:"bid",cid:myCid}); }
+function mgrCard(state,m,winning){
+  const set=state.settings;
+  const c=roleCounts(state,m);
+  const chips=m.squad.map(pid=>{const p=byId(state,pid);
+    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]||"#555"}">${esc(p.name)}</span>`;}).join("");
+  return `<div class="mcard ${winning?"winning":""} ${m.id===NET.myId&&NET.mode!=="local"?"me":""}">
+    <div class="mname">${esc(m.name)}${winning?" 👑":""} ${NET.mode!=="local"?(m.connected?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'):""}</div>
+    <div class="mmeta"><span>Left <b>${money(set.budget-m.spent)}</b></span><span>Slots <b>${m.squad.length}/${set.squadSize}</b></span></div>
+    <div class="mmeta"><span>BAT ${c.BAT}/${set.minBAT} · BWL ${c.BOWL}/${set.minBOWL}</span><span>AR ${c.AR}/${set.minAR} · WK ${c.WK}/${set.minWK}</span></div>
+    <div class="mmeta"><span>Overseas <b>${osCount(state,m)}/${set.maxOverseas}</b></span><span>Spent <b>${money(m.spent)}</b></span></div>
+    ${chips?`<div class="chips">${chips}</div>`:""}
+  </div>`;
+}
+function viewRoundEnd(state,canControl){
+  const unsoldList=state.unsold.map(pid=>{const p=byId(state,pid);
+    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]}">${esc(p.name)} · ${money(p.basePrice)}</span>`;}).join("");
+  return `${header(state,`<button onclick="UI.pool=true;render()">Player pool</button>`)}
+  <div class="card center">
+    <h2>Round ${state.round} complete 🏁</h2>
+    <p class="dim mt">${state.sold.length} sold · ${state.unsold.length} unsold</p>
+    ${state.unsold.length?`<div class="chips mt" style="justify-content:center">${unsoldList}</div>`:""}
+    ${canControl?`<div class="row mt" style="justify-content:center">
+      ${state.unsold.length?`<button class="primary big" onclick="reauctionUnsold()">♻ Re-auction ${state.unsold.length} unsold</button>`:""}
+      <button class="gold big" onclick="finishAuction()">Finish → results</button>
+      <button class="ghost" ${state.sold.length?"":"disabled"} onclick="undoLast()">↩ Undo last sale</button>
+    </div>`:`<p class="dim mt">Waiting for the host…</p>`}
+  </div>
+  <h3 class="mt mb">Managers</h3>
+  <div class="mgrgrid">${state.managers.map(m=>mgrCard(state,m,false)).join("")}</div>`;
+}
+
+/* ---------- results ---------- */
+function viewResults(state,canControl){
+  const set=state.settings;
+  const squads=state.managers.map(m=>{
+    const c=roleCounts(state,m);
+    const ok= m.squad.length>=set.squadSize && c.BAT>=set.minBAT&&c.BOWL>=set.minBOWL&&c.AR>=set.minAR&&c.WK>=set.minWK&&osCount(state,m)<=set.maxOverseas;
+    const rows=m.squad.map(pid=>{const p=byId(state,pid);const s=state.sold.find(x=>x.playerId===pid);
+      return `<tr><td style="border-left:3px solid ${TEAM_COLORS[p.team]}">${esc(p.name)}</td><td class="dim small">${esc(p.team)}</td><td>${p.role}${p.overseas?" ✈":""}</td><td style="color:var(--gold);font-weight:700">${money(s?s.price:0)}</td></tr>`;}).join("");
+    return `<div class="card mt">
+      <div class="row" style="justify-content:space-between">
+        <h3>${esc(m.name)} ${ok?"✅":"⚠️"}</h3>
+        <span class="dim small">Spent <b style="color:var(--text)">${money(m.spent)}</b> · Left <b style="color:var(--green)">${money(set.budget-m.spent)}</b> · ${m.squad.length}/${set.squadSize} players</span>
+      </div>
+      <div class="scroll mt"><table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th>Price</th></tr></thead><tbody>${rows||`<tr><td colspan=4 class="dim">No players</td></tr>`}</tbody></table></div>
+    </div>`;}).join("");
+  const unsoldRows=state.unsold.map(pid=>{const p=byId(state,pid);
+    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]}">${esc(p.name)}</span>`;}).join("");
+  return `${header(state)}
+  <div class="card center">
+    <h1>🏆 Final squads</h1>
+    <div class="row mt" style="justify-content:center">
+      <button class="primary" onclick="exportCSV()">⬇ Export CSV</button>
+      <button onclick="exportJSON()">⬇ Export JSON</button>
+      ${canControl?`<button class="ghost" onclick="undoLast()" ${state.sold.length?"":"disabled"}>↩ Undo last sale</button>
+      <button class="danger" onclick="restartAll()">Restart auction</button>`:""}
+    </div>
+  </div>
+  ${squads}
+  ${state.unsold.length?`<div class="card mt"><h3>Unsold (${state.unsold.length})</h3><div class="chips mt">${unsoldRows}</div></div>`:""}`;
+}
+
+/* ---------- player pool browser / editor ---------- */
+function viewPool(state){
+  const canEdit=UI.editPlayers && state.phase==="lobby" && NET.mode!=="client";
+  let list=state.players.filter(p=>{
+    if(UI.poolQ && !p.name.toLowerCase().includes(UI.poolQ.toLowerCase()))return false;
+    if(UI.poolTeam && p.team!==UI.poolTeam)return false;
+    if(UI.poolRole && p.role!==UI.poolRole)return false;
+    if(UI.poolOS && !p.overseas)return false;
+    return true;
+  });
+  list=UI.poolSort==="price"?[...list].sort((a,b)=>b.basePrice-a.basePrice):[...list].sort((a,b)=>a.name.localeCompare(b.name));
+  const status=p=>{
+    const s=state.sold.find(x=>x.playerId===p.id);
+    if(s){const m=state.managers.find(x=>x.id===s.managerId);return `<span style="color:var(--green)">→ ${esc(m?m.name:"?")} ${money(s.price)}</span>`;}
+    if(state.unsold.includes(p.id))return `<span style="color:var(--red)">unsold</span>`;
+    return `<span class="dim">available</span>`;
+  };
+  const rows=list.map(p=>`<tr>
+    <td style="border-left:3px solid ${TEAM_COLORS[p.team]}">${esc(p.name)}</td>
+    <td class="dim small">${esc(p.team)}</td><td>${p.role}${p.overseas?" ✈":""}</td>
+    <td>${canEdit?`<input type="number" step="0.5" min="1" value="${p.basePrice}" style="width:70px" onchange="editPrice(${p.id},this.value)">`:money(p.basePrice)}</td>
+    <td class="small">${status(p)}</td>
+    ${canEdit?`<td><button class="ghost small" style="padding:2px 8px;color:var(--red)" onclick="removePlayer(${p.id})">✕</button></td>`:""}
+  </tr>`).join("");
+  return `<div class="modal" onclick="if(event.target===this){UI.pool=false;UI.editPlayers=false;render()}">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2>${canEdit?"Edit players":"Player pool"} <span class="dim small">(${list.length}/${state.players.length})</span></h2>
+        <button onclick="UI.pool=false;UI.editPlayers=false;render()">✕ Close</button>
+      </div>
+      <div class="row mt">
+        <input placeholder="Search…" value="${esc(UI.poolQ)}" oninput="UI.poolQ=this.value;render();this.focus();this.setSelectionRange(this.value.length,this.value.length)" style="flex:1;min-width:130px">
+        <select onchange="UI.poolTeam=this.value;render()"><option value="">All clubs</option>
+          ${Object.keys(TEAM_COLORS).map(t=>`<option ${UI.poolTeam===t?"selected":""}>${t}</option>`).join("")}</select>
+        <select onchange="UI.poolRole=this.value;render()"><option value="">All roles</option>
+          ${ROLES.map(r=>`<option ${UI.poolRole===r?"selected":""}>${r}</option>`).join("")}</select>
+        <label class="row small dim"><input type="checkbox" ${UI.poolOS?"checked":""} onchange="UI.poolOS=this.checked;render()"> Overseas</label>
+        <select onchange="UI.poolSort=this.value;render()">
+          <option value="price" ${UI.poolSort==="price"?"selected":""}>Sort: price</option>
+          <option value="name" ${UI.poolSort==="name"?"selected":""}>Sort: name</option></select>
+      </div>
+      ${canEdit?`<div class="row mt">
+        <input id="npName" placeholder="Add player name" style="flex:1;min-width:120px">
+        <select id="npTeam">${Object.keys(TEAM_COLORS).map(t=>`<option>${t}</option>`).join("")}</select>
+        <select id="npRole">${ROLES.map(r=>`<option>${r}</option>`).join("")}</select>
+        <label class="row small dim"><input id="npOS" type="checkbox"> ✈</label>
+        <input id="npPrice" type="number" step="0.5" min="1" value="5" style="width:70px">
+        <button class="primary" onclick="addPlayer()">+ Add</button>
+      </div>`:""}
+      <div class="scroll mt" style="max-height:60vh;overflow-y:auto">
+        <table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th>Base</th><th>Status</th>${canEdit?"<th></th>":""}</tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>
+    </div>
+  </div>`;
+}
+function editPrice(pid,v){ const p=byId(S,pid); if(p){p.basePrice=Math.max(1,parseFloat(v)||p.basePrice); sync();} }
+function removePlayer(pid){ S.players=S.players.filter(p=>p.id!==pid); sync(); }
+function addPlayer(){
+  const name=document.getElementById("npName").value.trim(); if(!name)return;
+  S.players.push({id:Math.max(0,...S.players.map(p=>p.id))+1, name,
+    team:document.getElementById("npTeam").value, role:document.getElementById("npRole").value,
+    overseas:document.getElementById("npOS").checked, basePrice:Math.max(1,parseFloat(document.getElementById("npPrice").value)||5)});
+  sync();
+}
+
+/* ================= BOOT ================= */
+window.addEventListener("load",()=>{
+  if(location.hash && location.hash.length>3 && peerAvailable()){ goJoin(); return; }
+  render();
+});
+render();
+</script>
+</body>
+</html>
