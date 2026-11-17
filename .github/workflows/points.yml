@@ -1,0 +1,36 @@
+name: BBL points
+
+# Every 10 minutes. The script decides whether to spend CricketData requests:
+# it only pulls scorecards while a match is on, about every half hour per match on the free plan.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_fixtures:
+        description: "Reload the fixture list now"
+        type: boolean
+        default: false
+
+concurrency:
+  group: points
+  cancel-in-progress: false
+
+jobs:
+  points:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tests
+        run: python3 scripts/test_points.py
+      - name: Fetch points
+        env:
+          CRICKETDATA_KEY: ${{ secrets.CRICKETDATA_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          POLL_MINUTES: ${{ vars.POLL_MINUTES || '25' }}
+        run: python3 scripts/points.py ${{ inputs.force_fixtures && '--force-fixtures' || '' }}
