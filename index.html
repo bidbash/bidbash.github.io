@@ -3,254 +3,358 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BidBash — BBL|15 Auction Room</title>
+<meta name="theme-color" content="#0c0e0d">
+<meta name="description" content="BidBash: a live Big Bash League auction room. Host a room, share the code, bid for BBL|16 squads with your mates.">
+<title>BidBash: BBL|16 Auction Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js" onerror="window.MQTT_CDN1_FAILED=true"></script>
 <script>if(window.MQTT_CDN1_FAILED){document.write('<script src="https:\/\/unpkg.com\/mqtt@5.10.1\/dist\/mqtt.min.js" onerror="window.MQTT_FAILED=true"><\/script>')}</script>
 <style>
+/* One system: scoreboard black, warm white, floodlight yellow. Flat fills, hard edges, no gradients.
+   Spacing scale: 4 8 12 16 24 32 48 64. Type scale: 13 15 18 24 36 56 and the fluid scoreboard sizes. */
 :root{
-  --bg:#0a0e1a; --bg2:#111827; --panel:#161e31; --panel2:#1c2640;
-  --line:#263352; --text:#e8edf7; --dim:#8b98b8; --gold:#ffc93c;
-  --green:#2ee68a; --red:#ff5470; --accent:#4c8dff;
+  --bg:#0c0e0d; --surface:#161918; --raised:#202422; --line:#373d39;
+  --text:#f4f2ea; --muted:#a9aea8;
+  --accent:#f5d21f; --accent-hi:#ffe45c; --accent-lo:#8f7a00; --accent-ink:#151300;
+  --danger:#ff5a3c; --ok:#5fd38d;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --r:4px;
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  background:radial-gradient(1200px 600px at 70% -10%,#1a2547 0%,var(--bg) 55%);
-  color:var(--text); min-height:100vh;
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--body);font-size:15px;line-height:1.45;background:var(--bg);color:var(--text);min-height:100vh}
+#app{max-width:1240px;margin:0 auto;padding:var(--s4) var(--s4) var(--s8)}
+h1,h2,h3,.display{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:1}
+h1{font-size:56px} h2{font-size:36px} h3{font-size:24px}
+.num{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .small{font-size:13px}
+.label{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:grid;gap:var(--s4)}
+.mt{margin-top:var(--s5)} .mt-s{margin-top:var(--s3)}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Buttons: a physical key. It lifts on hover and goes down on press. */
+.btn{
+  font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.05em;text-transform:uppercase;
+  min-height:48px;padding:0 var(--s5);border-radius:var(--r);cursor:pointer;
+  background:var(--raised);color:var(--text);border:1px solid var(--line);
+  box-shadow:0 3px 0 #000;transform:translateY(0);
+  transition:transform .08s ease-out,box-shadow .08s ease-out,background-color .12s;
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);text-align:center;
 }
-#app{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
-h1,h2,h3{font-weight:800;letter-spacing:.3px}
-button{
-  font-family:inherit;font-weight:700;border:none;border-radius:10px;cursor:pointer;
-  padding:10px 16px;font-size:14px;background:var(--panel2);color:var(--text);
-  border:1px solid var(--line);transition:transform .06s,filter .15s;
-}
-button:hover:not(:disabled){filter:brightness(1.2)}
-button:active:not(:disabled){transform:scale(.97)}
-button:disabled{opacity:.38;cursor:not-allowed}
-button.primary{background:linear-gradient(135deg,#4c8dff,#7b5cff);border:none}
-button.gold{background:linear-gradient(135deg,#ffc93c,#ff8a3c);color:#1a1a1a;border:none}
-button.danger{background:transparent;border:1px solid var(--red);color:var(--red)}
-button.ghost{background:transparent}
-button.big{padding:15px 26px;font-size:17px;border-radius:14px}
+.btn:hover:not(:disabled){background:#2a2f2c;transform:translateY(-1px);box-shadow:0 4px 0 #000}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 #000}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 3px 0 var(--accent-lo)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hi);box-shadow:0 4px 0 var(--accent-lo)}
+.btn-primary:active:not(:disabled){box-shadow:0 0 0 var(--accent-lo)}
+.btn-primary:focus-visible{outline-color:var(--text)}
+.btn-danger{color:var(--danger);border-color:var(--danger)}
+.btn-quiet{background:transparent;box-shadow:none;border-color:transparent;color:var(--muted)}
+.btn-quiet:hover:not(:disabled){background:var(--raised);box-shadow:none;color:var(--text);transform:none}
+.btn-quiet:active:not(:disabled){transform:translateY(1px)}
+.btn-lg{min-height:60px;font-size:24px;padding:0 var(--s6)}
+.btn-block{width:100%}
+.btn-sm{min-height:44px;font-size:15px;padding:0 var(--s3)}
+
 input,select{
-  font-family:inherit;background:var(--bg2);color:var(--text);border:1px solid var(--line);
-  border-radius:8px;padding:9px 12px;font-size:14px;outline:none;
+  font-family:var(--body);font-size:16px;background:var(--bg);color:var(--text);
+  border:1px solid var(--line);border-radius:var(--r);min-height:48px;padding:0 var(--s3);width:100%;
 }
-input:focus,select:focus{border-color:var(--accent)}
-input[type=number]{width:80px}
-input[type=checkbox]{width:auto;accent-color:var(--accent);transform:scale(1.25)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.grid{display:grid;gap:12px}
-.dim{color:var(--dim)}
-.small{font-size:12px}
-.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.5px}
-.tag.role{background:#243154;color:#a9c2ff}
-.tag.os{background:#4a2b3f;color:#ff9ecb}
-.mt{margin-top:14px}.mb{margin-bottom:14px}
-.center{text-align:center}
-.logo{
-  font-size:clamp(30px,6vw,52px);font-weight:900;font-style:italic;letter-spacing:-1px;
-  background:linear-gradient(90deg,#ffc93c,#ff5470,#7b5cff,#4c8dff);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-}
-.sub{color:var(--dim);font-size:15px;margin-top:4px}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.codebox{
-  font-size:34px;font-weight:900;letter-spacing:10px;padding:14px 10px 14px 20px;text-align:center;
-  background:var(--bg2);border:2px dashed var(--gold);border-radius:14px;color:var(--gold);
-  user-select:all;cursor:pointer;
-}
-.pcard{
-  border-radius:20px;padding:26px;position:relative;overflow:hidden;
-  background:linear-gradient(160deg,var(--panel2) 0%,var(--panel) 100%);
-  border:1px solid var(--line);border-top:6px solid var(--tc,#4c8dff);
-}
-.pcard .teamglow{position:absolute;inset:0;background:radial-gradient(500px 220px at 85% 0%,var(--tc) 0%,transparent 65%);opacity:.18;pointer-events:none}
-.pname{font-size:clamp(26px,4.5vw,42px);font-weight:900;line-height:1.05}
-.pteam{font-weight:800;color:var(--tc,#4c8dff);margin-top:4px;font-size:15px}
-.bidnow{font-size:clamp(34px,6vw,56px);font-weight:900;color:var(--gold);line-height:1}
-.bidder{font-size:16px;font-weight:700;margin-top:2px}
-.timerwrap{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-top:14px}
-.timerbar{height:100%;background:linear-gradient(90deg,var(--green),var(--gold),var(--red));border-radius:99px;transition:width .25s linear}
-.mgrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
-.mcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-.mcard.winning{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(255,201,60,.25)}
-.mcard.me{border-color:var(--accent)}
-.mname{font-weight:800;font-size:15px;display:flex;justify-content:space-between;align-items:center}
-.mmeta{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--dim)}
-.mmeta b{color:var(--text)}
-.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-.chip{font-size:10.5px;padding:2px 7px;border-radius:99px;background:var(--bg2);border-left:3px solid var(--cc,#555)}
-.offline-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block}
-.online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
-th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px}
-.modal{
-  position:fixed;inset:0;background:rgba(5,8,16,.8);backdrop-filter:blur(4px);
-  display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;z-index:50;overflow:auto;
-}
-.modal .card{max-width:900px;width:100%}
-#toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center}
-.toast{
-  background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:11px 20px;
-  border-radius:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:pop .25s ease;
-  max-width:90vw;text-align:center;
-}
-@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
-.setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.setitem{display:flex;flex-direction:column;gap:5px}
-.setitem label{font-size:12px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
-.bidbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:14px}
-.bidbtn{display:flex;flex-direction:column;gap:2px;align-items:center;padding:12px 8px;border-radius:12px}
-.bidbtn .nm{font-size:14px}.bidbtn .amt{font-size:18px;color:var(--gold)}.bidbtn .rem{font-size:11px;opacity:.75}
-.notice{background:#2a2140;border:1px solid #7b5cff;border-radius:10px;padding:10px 14px;font-size:13px}
-.warn{background:#3a2530;border-color:var(--red)}
+input:hover,select:hover{border-color:#59605b}
+input[type=number]{width:96px}
+input[type=checkbox]{width:24px;min-height:24px;height:24px;accent-color:var(--accent);padding:0}
+.field{display:grid;gap:var(--s1)}
+.field>span{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s5)}
+.panel-narrow{max-width:520px;margin:var(--s7) auto 0}
+.notice{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4);font-size:13px;color:var(--muted)}
+.notice.bad{border-color:var(--danger);color:var(--text)}
+
+/* Top bar */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);flex-wrap:wrap;padding-bottom:var(--s4);margin-bottom:var(--s5);border-bottom:1px solid var(--line)}
+.wordmark{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.04em;text-transform:uppercase}
+.wordmark b{color:var(--accent);font-weight:800}
+.codechip{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.14em;background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--r);min-height:44px;padding:0 var(--s3);cursor:pointer;transition:transform .08s}
+.codechip:hover{background:var(--accent-hi)} .codechip:active{transform:translateY(2px)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--ok)}
+.dot.off{background:var(--danger)}
+
+/* Home */
+.home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s7);align-items:center;min-height:calc(100vh - 96px)}
+.home h1{font-size:clamp(72px,13vw,176px);letter-spacing:-.01em;line-height:.86}
+.home h1 b{color:var(--accent);font-weight:800}
+.home .lede{font-size:24px;line-height:1.25;max-width:22ch;margin-top:var(--s4);font-weight:500}
+.home .actions{display:grid;gap:var(--s3);max-width:380px;margin-top:var(--s6)}
+.home .facts{margin-top:var(--s5);color:var(--muted);font-size:13px;max-width:44ch}
+.ballstage{aspect-ratio:1;width:100%;max-width:560px;justify-self:center;position:relative}
+.ballstage canvas,.ballstage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* Room code as scoreboard cells */
+.codecells{display:flex;gap:var(--s2);justify-content:center;cursor:pointer;background:none;border:0;width:100%}
+.codecells span{font-family:var(--display);font-weight:800;font-size:clamp(48px,11vw,96px);line-height:1;background:var(--bg);color:var(--accent);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4);min-width:1.1em;text-align:center;transition:transform .08s}
+.codecells:active span{transform:translateY(3px)}
+
+/* The lot: who is under the hammer. Built to be read from the couch. */
+.lot{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.lot-band{background:var(--club);color:var(--club-ink);display:flex;gap:var(--s2) var(--s5);align-items:center;flex-wrap:wrap;padding:var(--s3) var(--s5);font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.06em;text-transform:uppercase}
+.lot-band .grow{flex:1}
+.lot-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--s6);padding:var(--s6) var(--s5);align-items:end}
+.lot-name{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(48px,8.4vw,128px);line-height:.88;letter-spacing:-.01em;overflow-wrap:anywhere}
+.lot-note{margin-top:var(--s3);color:var(--muted);max-width:46ch}
+.lot-note b{color:var(--text)}
+.score{text-align:right}
+.score .amt{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;font-size:clamp(88px,15vw,208px);line-height:.82;color:var(--accent)}
+.score .leader{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.4vw,44px);text-transform:uppercase;letter-spacing:.02em;margin-top:var(--s2);overflow-wrap:anywhere}
+.score .leader.none{color:var(--muted)}
+.clock{display:flex;align-items:center;gap:var(--s4);padding:0 var(--s5) var(--s5)}
+.clock .secs{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;font-size:56px;line-height:1;min-width:2.4ch}
+.clock .track{flex:1;height:16px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.clock .bar{height:100%;background:var(--accent);transition:width .25s linear}
+.lot[data-urgent] .clock .secs{color:var(--danger)}
+.lot[data-urgent] .clock .bar{background:var(--danger)}
+.lot-actions{border-top:1px solid var(--line);padding:var(--s5);display:grid;gap:var(--s4)}
+.bidgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s3)}
+.bid{min-height:88px;flex-direction:column;gap:0;font-size:36px;line-height:1}
+.bid small{font-family:var(--body);font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;opacity:.85;margin-top:var(--s1)}
+.bid .who{font-size:18px;letter-spacing:.06em}
+.bid-solo{min-height:104px;font-size:56px;width:100%;max-width:560px;margin:0 auto}
+.bid.leading{background:var(--surface);color:var(--accent);border-color:var(--accent);box-shadow:none;opacity:1}
+.hostbar{display:flex;gap:var(--s3);flex-wrap:wrap;justify-content:center}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+.score .amt.bump{animation:bump .22s ease-out}
+
+/* Manager board */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--s3)}
+.mgr{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s4)}
+.mgr.lead{outline:2px solid var(--accent);outline-offset:-2px}
+.mgr-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2)}
+.mgr-name{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;overflow-wrap:anywhere}
+.mgr-left{font-family:var(--display);font-weight:800;font-size:36px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.mgr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-top:var(--s3);font-size:13px;color:var(--muted)}
+.mgr-stats b{display:block;color:var(--text);font-family:var(--display);font-size:18px;font-weight:700}
+.tagline{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.you{background:var(--text);color:var(--bg);padding:0 var(--s1);border-radius:2px}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s1);margin-top:var(--s3)}
+.chip{font-size:13px;background:var(--raised);border-radius:2px;padding:2px var(--s2) 2px 2px;display:inline-flex;align-items:center;gap:var(--s2)}
+.sw{width:16px;height:16px;border-radius:2px;background:var(--club,#777);display:inline-block;flex:none}
+.pill{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;border:1px solid currentColor;border-radius:2px;padding:0 var(--s1)}
+.pill.warn{color:var(--danger)}
+
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:var(--s2) var(--s3);border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.price{font-family:var(--display);font-weight:700;font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
 .scroll{overflow-x:auto}
-@media(max-width:640px){ .codebox{font-size:24px;letter-spacing:6px} }
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s4)}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:flex-start;justify-content:center;padding:var(--s5) var(--s3);z-index:50;overflow:auto}
+.modal .panel{max-width:960px;width:100%}
+.filters{display:grid;grid-template-columns:2fr 1.4fr 1fr auto 1fr;gap:var(--s3);align-items:center}
+.addrow{display:grid;grid-template-columns:2fr 1.4fr 1fr auto 96px auto;gap:var(--s3);align-items:center}
+.check{display:inline-flex;align-items:center;gap:var(--s2);font-size:13px;color:var(--muted);white-space:nowrap}
+
+#toasts{position:fixed;top:var(--s4);left:50%;transform:translateX(-50%);z-index:99;display:grid;gap:var(--s2);justify-items:center;width:min(92vw,560px);pointer-events:none}
+.toast{background:var(--text);color:var(--bg);font-weight:600;padding:var(--s3) var(--s4);border-radius:var(--r);text-align:center;animation:drop .16s ease-out}
+@keyframes drop{from{transform:translateY(-8px)}to{transform:none}}
+#stamp{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);pointer-events:none;padding:var(--s4)}
+#stamp.on{display:flex}
+#stamp .ink{border:8px solid var(--danger);color:var(--danger);border-radius:var(--r);padding:var(--s4) var(--s6);text-align:center;transform:rotate(-6deg);background:var(--bg);animation:thump .28s cubic-bezier(.2,1.4,.4,1)}
+#stamp .word{font-family:var(--display);font-weight:800;font-size:clamp(96px,22vw,260px);line-height:.85;letter-spacing:.02em}
+#stamp .line{font-family:var(--display);font-weight:700;font-size:clamp(18px,3.2vw,36px);text-transform:uppercase;color:var(--text);margin-top:var(--s2)}
+@keyframes thump{from{transform:rotate(-6deg) scale(1.8)}to{transform:rotate(-6deg) scale(1)}}
+
+@media (max-width:820px){
+  h1{font-size:36px} h2{font-size:24px}
+  .home{grid-template-columns:1fr;gap:var(--s4);min-height:0;padding-top:var(--s4)}
+  .ballstage{max-width:240px;order:-1;justify-self:start}
+  .home .actions{max-width:none}
+  .lot-band{font-size:18px;padding:var(--s3) var(--s4);gap:var(--s3)}
+  .lot-body{grid-template-columns:1fr;gap:var(--s4);padding:var(--s5) var(--s4)}
+  .score{text-align:left}
+  .clock{padding:0 var(--s4) var(--s4)} .clock .secs{font-size:36px}
+  .lot-actions{padding:var(--s4)}
+  .bidgrid{grid-template-columns:1fr 1fr}
+  .bid{min-height:72px;font-size:24px}
+  .bid-solo{min-height:88px;font-size:36px}
+  .filters,.addrow{grid-template-columns:1fr 1fr}
+  .panel{padding:var(--s4)}
+  .hostbar .btn{flex:1 1 44%}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
-<div id="toasts"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+<div id="stamp" aria-hidden="true"><div class="ink"><div class="word">SOLD</div><div class="line" id="stampline"></div></div></div>
 <div id="app"></div>
 <script>
 "use strict";
-/* ================= DATA ================= */
-const TEAM_COLORS = {
-  "Adelaide Strikers":"#1B75BC","Brisbane Heat":"#00B3E3","Hobart Hurricanes":"#6A2A91",
-  "Melbourne Renegades":"#E21B23","Melbourne Stars":"#00843D","Perth Scorchers":"#FF7A00",
-  "Sydney Sixers":"#E5007E","Sydney Thunder":"#9FD400"
+/* ================= DATA =================
+   BBL|16 (2026-27) squads. Jason Behrendorff (Renegades) is left out: ruled out for the season.
+   Sources: cricket.com.au squad tracker (news/4440305), Wikipedia 2026-27 Big Bash League season
+   (squads as of 13 Nov 2026), cricket.com.au and club signing stories for late moves.
+   Base price method (one tier per player, from recent BBL and T20 output plus profile):
+     20 to 22  global headline act, certain starter
+     16 to 18  elite, match winner most nights
+     14        marquee floor (the marquee round is base 14 and up)
+     10 to 12  established first XI player
+     8         regular in the XI
+     5 to 6    squad player or specialist role
+     4         rookie, or a player whose role or signing is unverified
+   Known limited availability drops a player one tier. Optional fields: note, unverified. */
+const DATA_AS_OF = "17 Nov 2026";
+const DATA_SOURCES = ["cricket.com.au squad tracker","Wikipedia 2026-27 BBL season page","club signing announcements"];
+const TEAMS = {
+  "Adelaide Strikers":{c:"#1B75BC",ink:"#ffffff",ab:"STR"},
+  "Brisbane Heat":{c:"#00B3E3",ink:"#06222b",ab:"HEA"},
+  "Hobart Hurricanes":{c:"#6A2A91",ink:"#ffffff",ab:"HUR"},
+  "Melbourne Renegades":{c:"#E21B23",ink:"#ffffff",ab:"REN"},
+  "Melbourne Stars":{c:"#00843D",ink:"#ffffff",ab:"STA"},
+  "Perth Scorchers":{c:"#FF7A00",ink:"#1c0d00",ab:"SCO"},
+  "Sydney Sixers":{c:"#E5007E",ink:"#ffffff",ab:"SIX"},
+  "Sydney Thunder":{c:"#9FD400",ink:"#142000",ab:"THU"},
 };
+const TEAM_COLORS = Object.fromEntries(Object.entries(TEAMS).map(([k,v])=>[k,v.c]));
 const PLAYERS = [
- {"id":1,"name":"Travis Head","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":22.0},
- {"id":2,"name":"Chris Lynn","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":14.0},
- {"id":3,"name":"Matt Short","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":14.0},
- {"id":4,"name":"Jamie Overton","team":"Adelaide Strikers","role":"AR","overseas":true,"basePrice":12.0},
- {"id":5,"name":"Alex Carey","team":"Adelaide Strikers","role":"WK","overseas":false,"basePrice":12.0},
- {"id":6,"name":"D'Arcy Short","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":8.0},
- {"id":7,"name":"Hasan Ali","team":"Adelaide Strikers","role":"BOWL","overseas":true,"basePrice":8.0},
- {"id":8,"name":"Mackenzie Harvey","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":6.0},
- {"id":9,"name":"Jordan Buckingham","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":10,"name":"Cameron Boyce","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":11,"name":"Thomas Kelly","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":12,"name":"Harry Manenti","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":5.0},
- {"id":13,"name":"Harry Nielsen","team":"Adelaide Strikers","role":"WK","overseas":false,"basePrice":5.0},
- {"id":14,"name":"Jason Sangha","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":15,"name":"Liam Scott","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":5.0},
- {"id":16,"name":"Henry Thornton","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":17,"name":"Shaheen Shah Afridi","team":"Brisbane Heat","role":"BOWL","overseas":true,"basePrice":16.0},
- {"id":18,"name":"Colin Munro","team":"Brisbane Heat","role":"BAT","overseas":true,"basePrice":10.0},
- {"id":19,"name":"Michael Neser","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":10.0},
- {"id":20,"name":"Xavier Bartlett","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":10.0},
- {"id":21,"name":"Spencer Johnson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":10.0},
- {"id":22,"name":"Usman Khawaja","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
- {"id":23,"name":"Max Bryant","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
- {"id":24,"name":"Jack Wildermuth","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":1,"name":"Ben Stokes","team":"Adelaide Strikers","role":"AR","overseas":true,"basePrice":20.0},
+ {"id":2,"name":"Matt Short","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":16.0,"note":"Captain."},
+ {"id":3,"name":"Haris Rauf","team":"Adelaide Strikers","role":"BOWL","overseas":true,"basePrice":14.0},
+ {"id":4,"name":"Alex Carey","team":"Adelaide Strikers","role":"WK","overseas":false,"basePrice":12.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":5,"name":"Mark Chapman","team":"Adelaide Strikers","role":"BAT","overseas":true,"basePrice":10.0},
+ {"id":6,"name":"Jerrssis Wadia","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":7,"name":"Liam Scott","team":"Adelaide Strikers","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":8,"name":"Jason Sangha","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":9,"name":"Mackenzie Harvey","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":10,"name":"Lloyd Pope","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":11,"name":"Henry Thornton","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":12,"name":"Harjas Singh","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":13,"name":"Thomas Kelly","team":"Adelaide Strikers","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":14,"name":"Tom Straker","team":"Adelaide Strikers","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true},
+ {"id":15,"name":"Tom Curran","team":"Brisbane Heat","role":"AR","overseas":true,"basePrice":12.0,"note":"Misses the first three games for family reasons."},
+ {"id":16,"name":"Xavier Bartlett","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":12.0},
+ {"id":17,"name":"Tim Robinson","team":"Brisbane Heat","role":"BAT","overseas":true,"basePrice":10.0},
+ {"id":18,"name":"Spencer Johnson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":19,"name":"Michael Neser","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":10.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":20,"name":"Marnus Labuschagne","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":10.0,"note":"Club lists him as available all season. Signing appears only in the cricket.com.au tracker.","unverified":true},
+ {"id":21,"name":"Usman Khawaja","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":22,"name":"Max Bryant","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":23,"name":"Matt Renshaw","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":24,"name":"Nathan McSweeney","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":8.0},
  {"id":25,"name":"Matthew Kuhnemann","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":26,"name":"Tom Alsop","team":"Brisbane Heat","role":"WK","overseas":false,"basePrice":6.0},
- {"id":27,"name":"Jimmy Peirson","team":"Brisbane Heat","role":"WK","overseas":false,"basePrice":6.0},
- {"id":28,"name":"Matt Renshaw","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":6.0},
- {"id":29,"name":"Mitchell Swepson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":30,"name":"Callum Vidler","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":26,"name":"Jack Wildermuth","team":"Brisbane Heat","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":27,"name":"Bevon Jacobs","team":"Brisbane Heat","role":"BAT","overseas":true,"basePrice":6.0,"note":"Replacement cover for Tom Curran, so he may only play the early games."},
+ {"id":28,"name":"Jimmy Peirson","team":"Brisbane Heat","role":"WK","overseas":false,"basePrice":6.0},
+ {"id":29,"name":"Callum Vidler","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":30,"name":"Hugh Weibgen","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":5.0},
  {"id":31,"name":"Lachlan Hearne","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":4.0},
- {"id":32,"name":"Hugh Weibgen","team":"Brisbane Heat","role":"BAT","overseas":false,"basePrice":4.0},
- {"id":33,"name":"Tom Balkin","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":4.0},
- {"id":34,"name":"Tim David","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":16.0},
- {"id":35,"name":"Nathan Ellis","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":14.0},
- {"id":36,"name":"Ben McDermott","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":10.0},
- {"id":37,"name":"Mitchell Owen","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":10.0},
- {"id":38,"name":"Beau Webster","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":10.0},
- {"id":39,"name":"Chris Jordan","team":"Hobart Hurricanes","role":"BOWL","overseas":true,"basePrice":10.0},
- {"id":40,"name":"Rehan Ahmed","team":"Hobart Hurricanes","role":"AR","overseas":true,"basePrice":10.0},
- {"id":41,"name":"Matthew Wade","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":8.0},
- {"id":42,"name":"Rishad Hossain","team":"Hobart Hurricanes","role":"BOWL","overseas":true,"basePrice":8.0},
+ {"id":32,"name":"Tom Balkin","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Signing appears only in the cricket.com.au tracker.","unverified":true},
+ {"id":33,"name":"Oli Patterson","team":"Brisbane Heat","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Signing appears only in the cricket.com.au tracker. Role not confirmed.","unverified":true},
+ {"id":34,"name":"Tim David","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":18.0},
+ {"id":35,"name":"Adam Zampa","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":16.0},
+ {"id":36,"name":"Nathan Ellis","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":14.0,"note":"Captain."},
+ {"id":37,"name":"Mitch Owen","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":14.0},
+ {"id":38,"name":"Shai Hope","team":"Hobart Hurricanes","role":"WK","overseas":true,"basePrice":12.0},
+ {"id":39,"name":"Ben McDermott","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":10.0},
+ {"id":40,"name":"Beau Webster","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":10.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":41,"name":"Rishad Hossain","team":"Hobart Hurricanes","role":"BOWL","overseas":true,"basePrice":8.0,"note":"Available for the first eight games only."},
+ {"id":42,"name":"Jake Weatherald","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":8.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
  {"id":43,"name":"Riley Meredith","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":44,"name":"Nikhil Chaudhary","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":6.0},
- {"id":45,"name":"Jackson Bird","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":46,"name":"Billy Stanlake","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":44,"name":"Nikhil Chaudhary","team":"Hobart Hurricanes","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":45,"name":"Nick Hobson","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":46,"name":"Billy Stanlake","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":5.0},
  {"id":47,"name":"Tim Ward","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":48,"name":"Jake Doran","team":"Hobart Hurricanes","role":"WK","overseas":false,"basePrice":5.0},
- {"id":49,"name":"Charlie Wakim","team":"Hobart Hurricanes","role":"BAT","overseas":false,"basePrice":4.0},
- {"id":50,"name":"Iain Carlisle","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":4.0},
- {"id":51,"name":"Adam Zampa","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":48,"name":"Marcus Bean","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":49,"name":"Iain Carlisle","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":50,"name":"Will Prestwidge","team":"Hobart Hurricanes","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":51,"name":"Jonny Bairstow","team":"Melbourne Renegades","role":"WK","overseas":true,"basePrice":14.0,"note":"Available for the full season."},
  {"id":52,"name":"Jake Fraser-McGurk","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":12.0},
- {"id":53,"name":"Will Sutherland","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":10.0},
- {"id":54,"name":"Tim Seifert","team":"Melbourne Renegades","role":"WK","overseas":true,"basePrice":10.0},
- {"id":55,"name":"Jacob Bethell","team":"Melbourne Renegades","role":"AR","overseas":true,"basePrice":10.0},
- {"id":56,"name":"Jason Behrendorff","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":10.0},
- {"id":57,"name":"Josh Brown","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":8.0},
- {"id":58,"name":"Caleb Jewell","team":"Melbourne Renegades","role":"BAT","overseas":true,"basePrice":8.0},
- {"id":59,"name":"Hassan Khan","team":"Melbourne Renegades","role":"AR","overseas":true,"basePrice":8.0},
- {"id":60,"name":"Nathan Lyon","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":61,"name":"Brendan Doggett","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":62,"name":"Tom Rogers","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":63,"name":"Gurinder Sandhu","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":64,"name":"Harry Dixon","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":65,"name":"Will Salzmann","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":5.0},
- {"id":66,"name":"Fergus O'Neill","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":67,"name":"Glenn Maxwell","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":18.0},
- {"id":68,"name":"Marcus Stoinis","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":16.0},
- {"id":69,"name":"Tom Curran","team":"Melbourne Stars","role":"AR","overseas":true,"basePrice":12.0},
- {"id":70,"name":"Scott Boland","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":10.0},
- {"id":71,"name":"Joe Clarke","team":"Melbourne Stars","role":"WK","overseas":true,"basePrice":10.0},
- {"id":72,"name":"Sam Hain","team":"Melbourne Stars","role":"BAT","overseas":true,"basePrice":8.0},
- {"id":73,"name":"Peter Siddle","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":74,"name":"Hilton Cartwright","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":6.0},
- {"id":75,"name":"Sam Harper","team":"Melbourne Stars","role":"WK","overseas":false,"basePrice":6.0},
- {"id":76,"name":"Joel Paris","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":77,"name":"Campbell Kellaway","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":78,"name":"Blake Macdonald","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":79,"name":"Liam Hatcher","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":80,"name":"Tom O'Connell","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":81,"name":"Austin Anlezark","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":4.0},
- {"id":82,"name":"Mitch Marsh","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":18.0},
- {"id":83,"name":"Finn Allen","team":"Perth Scorchers","role":"WK","overseas":true,"basePrice":16.0},
- {"id":84,"name":"Josh Inglis","team":"Perth Scorchers","role":"WK","overseas":false,"basePrice":14.0},
- {"id":85,"name":"Jhye Richardson","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":14.0},
- {"id":86,"name":"Ashton Agar","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
- {"id":87,"name":"Aaron Hardie","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
- {"id":88,"name":"Lance Morris","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":12.0},
- {"id":89,"name":"Andrew Tye","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":12.0},
- {"id":90,"name":"Ashton Turner","team":"Perth Scorchers","role":"BAT","overseas":false,"basePrice":10.0},
- {"id":91,"name":"Cooper Connolly","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":10.0},
- {"id":92,"name":"Laurie Evans","team":"Perth Scorchers","role":"BAT","overseas":true,"basePrice":8.0},
- {"id":93,"name":"Nick Hobson","team":"Perth Scorchers","role":"BAT","overseas":false,"basePrice":5.0},
- {"id":94,"name":"Brody Couch","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":95,"name":"Mahli Beardman","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":5.0},
- {"id":96,"name":"Joel Curtis","team":"Perth Scorchers","role":"WK","overseas":false,"basePrice":5.0},
- {"id":97,"name":"Steve Smith","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":20.0},
- {"id":98,"name":"Babar Azam","team":"Sydney Sixers","role":"BAT","overseas":true,"basePrice":20.0},
- {"id":99,"name":"Sam Curran","team":"Sydney Sixers","role":"AR","overseas":true,"basePrice":18.0},
- {"id":100,"name":"Sean Abbott","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":14.0},
- {"id":101,"name":"Ben Dwarshuis","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":12.0},
- {"id":102,"name":"Moises Henriques","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":10.0},
- {"id":103,"name":"Josh Philippe","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":10.0},
- {"id":104,"name":"Kane Richardson","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":105,"name":"Jordan Silk","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":6.0},
- {"id":106,"name":"Jack Edwards","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
- {"id":107,"name":"Hayden Kerr","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
- {"id":108,"name":"Todd Murphy","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":109,"name":"Ben Manenti","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":5.0},
- {"id":110,"name":"Joel Davies","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":5.0},
- {"id":111,"name":"Lachlan Shaw","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":5.0},
- {"id":112,"name":"Jafer Chohan","team":"Sydney Sixers","role":"BOWL","overseas":true,"basePrice":4.0},
+ {"id":53,"name":"Will Sutherland","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":12.0,"note":"Captain."},
+ {"id":54,"name":"Michael Bracewell","team":"Melbourne Renegades","role":"AR","overseas":true,"basePrice":12.0,"note":"Available for the full season."},
+ {"id":55,"name":"Mustafizur Rahman","team":"Melbourne Renegades","role":"BOWL","overseas":true,"basePrice":10.0,"note":"Replacement for the injured Jason Behrendorff. Joins after the ILT20, so he may miss the start."},
+ {"id":56,"name":"Josh Brown","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":57,"name":"Tom Rogers (Renegades)","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0,"note":"The fast bowler. Back from shoulder surgery that cost him all of BBL|15."},
+ {"id":58,"name":"Brendan Doggett","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":8.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":59,"name":"Ben Manenti","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":60,"name":"Caleb Jewell","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":61,"name":"Ollie Peake","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":62,"name":"Harry Dixon","team":"Melbourne Renegades","role":"BAT","overseas":false,"basePrice":5.0},
+ {"id":63,"name":"Sam Elliott","team":"Melbourne Renegades","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":64,"name":"Callum Stow","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":65,"name":"Michael Archer","team":"Melbourne Renegades","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":66,"name":"Glenn Maxwell","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":18.0},
+ {"id":67,"name":"Marcus Stoinis","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":16.0,"note":"Captain."},
+ {"id":68,"name":"Finn Allen","team":"Melbourne Stars","role":"BAT","overseas":true,"basePrice":16.0},
+ {"id":69,"name":"Jamie Overton","team":"Melbourne Stars","role":"AR","overseas":true,"basePrice":12.0,"note":"Committed to at least six games. England ODI duty could take the rest."},
+ {"id":70,"name":"Craig Overton","team":"Melbourne Stars","role":"AR","overseas":true,"basePrice":8.0},
+ {"id":71,"name":"Todd Murphy","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":8.0,"note":"Second half at risk because of the Test tour of India in January."},
+ {"id":72,"name":"Sam Harper","team":"Melbourne Stars","role":"WK","overseas":false,"basePrice":8.0},
+ {"id":73,"name":"Peter Siddle","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":74,"name":"Mitch Swepson","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":75,"name":"Hilton Cartwright","team":"Melbourne Stars","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":76,"name":"Campbell Kellaway","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":77,"name":"Tom Rogers (Stars)","team":"Melbourne Stars","role":"BAT","overseas":false,"basePrice":6.0,"note":"The top-order batter, not the Renegades quick."},
+ {"id":78,"name":"Liam Hatcher","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":79,"name":"Austin Anlezark","team":"Melbourne Stars","role":"BOWL","overseas":false,"basePrice":4.0},
+ {"id":80,"name":"Mitch Marsh","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":18.0},
+ {"id":81,"name":"Cooper Connolly","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":14.0},
+ {"id":82,"name":"Jhye Richardson","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":14.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":83,"name":"Aaron Hardie","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
+ {"id":84,"name":"Ashton Agar","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":12.0},
+ {"id":85,"name":"Ashton Turner","team":"Perth Scorchers","role":"BAT","overseas":false,"basePrice":10.0,"note":"Captain."},
+ {"id":86,"name":"Lance Morris","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":10.0},
+ {"id":87,"name":"Zak Crawley","team":"Perth Scorchers","role":"BAT","overseas":true,"basePrice":10.0},
+ {"id":88,"name":"Aneurin Donald","team":"Perth Scorchers","role":"BAT","overseas":true,"basePrice":6.0},
+ {"id":89,"name":"Calvin Harrison","team":"Perth Scorchers","role":"BOWL","overseas":true,"basePrice":6.0},
+ {"id":90,"name":"Joel Paris","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":91,"name":"Mahli Beardman","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":92,"name":"Brody Couch","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":93,"name":"Joel Curtis","team":"Perth Scorchers","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":94,"name":"Will Malajczuk","team":"Perth Scorchers","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":95,"name":"Albert Esterhuysen","team":"Perth Scorchers","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true},
+ {"id":96,"name":"Steve Smith","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":20.0,"note":"Test squad candidate. Australia tour India for five Tests in January, so he could miss the back half."},
+ {"id":97,"name":"Sean Abbott","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":14.0},
+ {"id":98,"name":"Ben Dwarshuis","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":12.0},
+ {"id":99,"name":"Tim Seifert","team":"Sydney Sixers","role":"WK","overseas":true,"basePrice":12.0},
+ {"id":100,"name":"Chris Jordan","team":"Sydney Sixers","role":"BOWL","overseas":true,"basePrice":10.0},
+ {"id":101,"name":"Josh Philippe","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":10.0},
+ {"id":102,"name":"Ollie Davies","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":103,"name":"Jack Edwards","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":104,"name":"Jordan Silk","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":105,"name":"Hayden Kerr","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":106,"name":"Fergus O'Neill","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":107,"name":"Corey Rocchiccioli","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":6.0},
+ {"id":108,"name":"Joel Davies","team":"Sydney Sixers","role":"AR","overseas":false,"basePrice":6.0},
+ {"id":109,"name":"Lachlan Shaw","team":"Sydney Sixers","role":"WK","overseas":false,"basePrice":5.0},
+ {"id":110,"name":"Jafer Chohan","team":"Sydney Sixers","role":"BOWL","overseas":true,"basePrice":5.0,"note":"English leg-spinner. Whether he counts against the overseas cap is not confirmed.","unverified":true},
+ {"id":111,"name":"Riley Kingsell","team":"Sydney Sixers","role":"BAT","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true},
+ {"id":112,"name":"Jake Scott","team":"Sydney Sixers","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true},
  {"id":113,"name":"David Warner","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":18.0},
- {"id":114,"name":"Cameron Green","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":16.0},
- {"id":115,"name":"Lockie Ferguson","team":"Sydney Thunder","role":"BOWL","overseas":true,"basePrice":14.0},
+ {"id":114,"name":"Lockie Ferguson","team":"Sydney Thunder","role":"BOWL","overseas":true,"basePrice":14.0,"note":"Missed BBL|15 with a calf injury."},
+ {"id":115,"name":"Trent Boult","team":"Sydney Thunder","role":"BOWL","overseas":true,"basePrice":14.0},
  {"id":116,"name":"Sam Billings","team":"Sydney Thunder","role":"WK","overseas":true,"basePrice":12.0},
  {"id":117,"name":"Daniel Sams","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":10.0},
- {"id":118,"name":"Chris Green","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":8.0},
- {"id":119,"name":"Wes Agar","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":8.0},
- {"id":120,"name":"Sam Konstas","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":8.0},
- {"id":121,"name":"Cameron Bancroft","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
- {"id":122,"name":"Ollie Davies","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":118,"name":"Sam Konstas","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":8.0},
+ {"id":119,"name":"Chris Green","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":8.0},
+ {"id":120,"name":"Tanveer Sangha","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":8.0},
+ {"id":121,"name":"Nic Maddinson","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
+ {"id":122,"name":"Cameron Bancroft","team":"Sydney Thunder","role":"BAT","overseas":false,"basePrice":6.0},
  {"id":123,"name":"Matt Gilkes","team":"Sydney Thunder","role":"WK","overseas":false,"basePrice":6.0},
- {"id":124,"name":"Nathan McAndrew","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":125,"name":"Tanveer Sangha","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":6.0},
- {"id":126,"name":"Tom Andrews","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":5.0}
+ {"id":124,"name":"Will Salzmann","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":5.0},
+ {"id":125,"name":"Ryan Hadley","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":5.0},
+ {"id":126,"name":"Hugo Burdon","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Signing appears only in the cricket.com.au tracker.","unverified":true},
+ {"id":127,"name":"Harry Hoekstra","team":"Sydney Thunder","role":"BOWL","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true},
+ {"id":128,"name":"Aidan O'Connor","team":"Sydney Thunder","role":"AR","overseas":false,"basePrice":4.0,"note":"Role not confirmed by a source.","unverified":true}
 ];
 const ROLES = ["BAT","BOWL","AR","WK"];
 const ROLE_LABEL = {BAT:"Batter",BOWL:"Bowler",AR:"All-rounder",WK:"Keeper"};
@@ -265,7 +369,7 @@ const LS_STATE="bbl15_state_v1", LS_CLIENT="bbl15_client_v1", LS_NET="bbl15_net_
 
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => String(Math.round(n*100)/100);
-const money = n => "¤" + fmt(n);
+const money = n => "$" + fmt(n);
 const st = () => NET.mode==="client" ? CS : S;
 const byId = (state,pid) => state.players.find(p=>p.id===pid);
 
@@ -330,7 +434,7 @@ function genCode(){
 }
 // Connect to the first reachable broker, then call onReady(client).
 function netConnect(brokerIdx,will,onReady){
-  if(brokerIdx>=BROKERS.length){ NET.status="Couldn't reach any relay server — check your internet."; render(); return; }
+  if(brokerIdx>=BROKERS.length){ NET.status="Couldn't reach any relay server: check your internet."; render(); return; }
   NET.status=brokerIdx===0?"Connecting…":"Trying backup server…"; render();
   const client=mqtt.connect(BROKERS[brokerIdx],{
     clientId:"bbl15_"+myCid, clean:true, connectTimeout:7000, reconnectPeriod:2000,
@@ -419,7 +523,7 @@ function joinRoom(code,name){
       }
       if(topic===T+"/c/"+myCid){
         if(msg.t==="you"){ NET.myId=msg.id; NET.spectator=false; }
-        if(msg.t==="spectator"){ NET.spectator=true; toast("Auction already started — you're spectating"); }
+        if(msg.t==="spectator"){ NET.spectator=true; toast("Auction already started: you're spectating"); }
         if(msg.t==="err"){ NET.status=msg.msg; }
         if(msg.t==="toast"){ toast(msg.msg); }
         render(); return;
@@ -427,7 +531,7 @@ function joinRoom(code,name){
       if(topic===T+"/toast"){ toast(msg.msg); }
     });
     clearTimeout(roomWait);
-    roomWait=setTimeout(()=>{ if(!CS){ NET.status="Room not found — double-check the code with your host."; render(); } },7000);
+    roomWait=setTimeout(()=>{ if(!CS){ NET.status="Room not found: double-check the code with your host."; render(); } },7000);
   });
 }
 function hostToast(msg){ // toast locally + push to clients
@@ -517,7 +621,7 @@ function undoLast(){
 function reauctionUnsold(){
   if(!S.unsold.length)return;
   S.queue=[...S.unsold]; S.unsold=[]; S.qIndex=0; S.round++;
-  hostToast("Re-auction round "+S.round+" — "+S.queue.length+" players back in!");
+  hostToast("Re-auction round "+S.round+": "+S.queue.length+" players back in!");
   startCurrent(); sync();
 }
 function finishAuction(){
@@ -584,15 +688,29 @@ function exportJSON(){
   download("bbl15-auction-results.json",JSON.stringify(out,null,2),"application/json");
 }
 
-/* ================= TOASTS ================= */
+/* ================= TOASTS AND THE SOLD STAMP ================= */
+const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let stampTimer=null;
 function toast(msg){
+  const sold=/^SOLD! (.+) → (.+) for (.+)$/.exec(msg);
+  if(sold){
+    const el=document.getElementById("stamp");
+    document.getElementById("stampline").textContent=sold[1]+" to "+sold[2]+" for "+sold[3];
+    el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+    clearTimeout(stampTimer); stampTimer=setTimeout(()=>el.classList.remove("on"),1500);
+    return;
+  }
   const box=document.getElementById("toasts");
-  const el=document.createElement("div");el.className="toast";el.textContent=msg;
+  const el=document.createElement("div"); el.className="toast"; el.textContent=msg;
   box.appendChild(el);
-  setTimeout(()=>{el.style.opacity="0";el.style.transition="opacity .4s";setTimeout(()=>el.remove(),400)},3200);
+  setTimeout(()=>el.remove(),3200);
 }
 
 /* ================= RENDER ================= */
+const clubStyle = team => { const t=TEAMS[team]||{c:"#777",ink:"#fff"}; return "--club:"+t.c+";--club-ink:"+t.ink; };
+const swatch = team => `<i class="sw" style="${clubStyle(team)}"></i>`;
+let lastBidShown=null;
+
 function render(){
   const app=document.getElementById("app");
   const state=st();
@@ -605,101 +723,98 @@ function render(){
     html = S.phase==="lobby" ? viewLobby(S,true) :
       S.phase==="auction" ? viewAuction(S,true) : viewResults(S,true);
   } else {
-    html = screen==="home"?viewHome() : screen==="join"?viewJoin() : screen==="setup"?viewSetup() : viewHome();
+    html = screen==="join"?viewJoin() : screen==="setup"?viewSetup() : viewHome();
   }
   if(UI.pool && state) html+=viewPool(state);
   app.innerHTML=html;
+  if(!state && screen==="home") BALL.mount();
+  if(!state && screen==="setup" && setupMode==="local") render_localnames(document.getElementById("nmgrs").value);
+  tickUrgency();
 }
 
 function header(state,extra){
-  const code=NET.code?`<span class="tag" style="background:#3a3110;color:var(--gold);font-size:13px;letter-spacing:2px;cursor:pointer" onclick="copyLink()" title="Click to copy invite">ROOM ${esc(NET.code)}</span>`:"";
-  const netdot=NET.mode?(NET.status==="live"?`<span class="online-dot"></span>`:`<span class="offline-dot"></span> <span class="small dim">${esc(NET.status)}</span>`):"";
-  return `<div class="topbar">
-    <div class="row"><span style="font-weight:900;font-style:italic;font-size:20px">Bid<span style="color:var(--gold)">Bash</span></span> ${code} ${netdot}</div>
+  const code=NET.code?`<button class="codechip" onclick="copyLink()" title="Copy the invite link">ROOM ${esc(NET.code)}</button>`:"";
+  const net=NET.mode&&NET.mode!=="local"?(NET.status==="live"?`<span class="dot" title="Connected"></span>`:`<span class="dot off"></span><span class="small muted">${esc(NET.status)}</span>`):"";
+  return `<header class="topbar">
+    <div class="row"><span class="wordmark">Bid<b>Bash</b></span>${code}${net}</div>
     <div class="row">${extra||""}</div>
-  </div>`;
+  </header>`;
 }
 function copyLink(){
   const link=location.origin.startsWith("http")?location.href.split("#")[0]+"#"+NET.code:NET.code;
-  navigator.clipboard&&navigator.clipboard.writeText(link).then(()=>toast("Invite copied: "+link)).catch(()=>toast("Room code: "+NET.code));
+  if(navigator.clipboard) navigator.clipboard.writeText(link).then(()=>toast("Invite copied: "+link)).catch(()=>toast("Room code: "+NET.code));
+  else toast("Room code: "+NET.code);
 }
 
-/* ---------- home / join / setup ---------- */
+/* ---------- home, join, setup ---------- */
 function viewHome(){
   const saved=localStorage.getItem(LS_STATE);
-  const p2p=peerAvailable();
-  return `
-  <div class="center" style="padding-top:7vh">
-    <div class="logo">BIDBASH</div>
-    <div class="sub">The Big Bash fantasy auction room — bid live with your mates.</div>
-    <div class="grid mt" style="max-width:420px;margin:26px auto;gap:14px">
-      ${saved?`<button class="gold big" onclick="resumeSaved()">⟳ Resume saved auction</button>`:""}
-      <button class="primary big" onclick="goSetup('host')" ${p2p?"":"disabled title='Online unavailable — no internet connection'"}>🏟 Host an online room</button>
-      <button class="big" onclick="goJoin()" ${p2p?"":"disabled"}>🎟 Join a room</button>
-      <button class="big" onclick="goSetup('local')">📱 Pass &amp; play (one device)</button>
+  const online=peerAvailable();
+  return `<main class="home">
+    <div>
+      <h1>Bid<b>Bash</b></h1>
+      <p class="lede">Auction night for the Big Bash. Set the purse, share a code, fight over Maxi.</p>
+      <div class="actions">
+        ${saved?`<button class="btn btn-primary btn-lg" onclick="resumeSaved()">Resume your auction</button>`:""}
+        <button class="btn ${saved?"":"btn-primary"} btn-lg" onclick="goSetup('host')" ${online?"":"disabled"}>Host a room</button>
+        <button class="btn btn-lg" onclick="goJoin()" ${online?"":"disabled"}>Join with a code</button>
+        <button class="btn btn-lg" onclick="goSetup('local')">Pass and play</button>
+      </div>
+      ${online?"":`<p class="notice mt-s">You look to be offline, so online rooms are off. Pass and play still works on this device.</p>`}
+      <p class="facts">${PLAYERS.length} players from all 8 clubs. BBL|16 squads (2026-27) as of ${DATA_AS_OF}. The host can fix names and prices before the first ball.</p>
     </div>
-    <div class="small dim" style="max-width:520px;margin:20px auto">
-      126 players · 8 clubs · BBL|15 (2025-26). Squad data compiled from public sources mid-season —
-      hosts can edit players &amp; base prices before starting.
-    </div>
-  </div>`;
+    <div class="ballstage" id="ballstage" aria-hidden="true">${BALL_SVG}</div>
+  </main>`;
 }
 function goJoin(){
   const remembered=JSON.parse(localStorage.getItem(LS_CLIENT)||"{}");
   screen="join"; render();
-  setTimeout(()=>{
-    const hash=(location.hash||"").replace("#","").trim();
-    if(hash)document.getElementById("joincode").value=hash;
-    else if(remembered.code)document.getElementById("joincode").value=remembered.code;
-    if(remembered.name)document.getElementById("joinname").value=remembered.name;
-  },0);
+  const hash=(location.hash||"").replace("#","").trim();
+  if(hash)document.getElementById("joincode").value=hash;
+  else if(remembered.code)document.getElementById("joincode").value=remembered.code;
+  if(remembered.name)document.getElementById("joinname").value=remembered.name;
 }
 function viewJoin(){
   return `${header(null)}
-  <div class="card" style="max-width:430px;margin:8vh auto 0">
+  <main class="panel panel-narrow stack">
     <h2>Join a room</h2>
-    <div class="grid mt">
-      <input id="joinname" maxlength="20" placeholder="Your name">
-      <input id="joincode" maxlength="5" placeholder="Room code (e.g. XK4P2)" style="text-transform:uppercase;letter-spacing:4px;font-weight:800">
-      <button class="primary big" onclick="doJoin()">Join room</button>
-      <button class="ghost" onclick="screen='home';render()">← Back</button>
-      ${NET.status&&NET.status!=="live"?`<div class="notice warn">${esc(NET.status)}</div>`:""}
-    </div>
-  </div>`;
+    <label class="field"><span>Your name</span><input id="joinname" maxlength="20" autocomplete="nickname"></label>
+    <label class="field"><span>Room code</span><input id="joincode" maxlength="5" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.3em;font-weight:700"></label>
+    <button class="btn btn-primary btn-lg btn-block" onclick="doJoin()">Join the room</button>
+    <button class="btn btn-quiet btn-block" onclick="screen='home';render()">Back</button>
+    ${NET.status&&NET.status!=="live"?`<p class="notice bad">${esc(NET.status)}</p>`:""}
+  </main>`;
 }
 function doJoin(){
   const name=document.getElementById("joinname").value.trim();
   const code=document.getElementById("joincode").value.trim().toUpperCase();
-  if(!name||code.length<4){ toast("Enter your name and the 5-character room code"); return; }
+  if(!name||code.length<4){ toast("Add your name and the 5 character room code"); return; }
   joinRoom(code,name);
 }
 function viewClientConnecting(){
   return `${header(null)}
-  <div class="card center" style="max-width:430px;margin:10vh auto 0">
-    <h2>Joining room ${esc(NET.code||"")}…</h2>
-    <p class="dim mt">${esc(NET.status)}</p>
-    <button class="ghost mt" onclick="location.reload()">Cancel</button>
-  </div>`;
+  <main class="panel panel-narrow stack">
+    <h2>Walking out to room ${esc(NET.code||"")}</h2>
+    <p class="muted">${esc(NET.status)}</p>
+    <button class="btn btn-quiet" onclick="location.reload()">Cancel</button>
+  </main>`;
 }
 let setupMode="local";
 function goSetup(mode){ setupMode=mode; screen="setup"; render(); }
 function viewSetup(){
   const isHost=setupMode==="host";
   return `${header(null)}
-  <div class="card" style="max-width:640px;margin:4vh auto 0">
-    <h2>${isHost?"Host an online room":"Pass & play setup"}</h2>
-    <div class="grid mt">
-      <div class="setitem"><label>${isHost?"Your name (you're Manager 1)":"How many managers?"}</label>
-      ${isHost
-        ? `<input id="hostname" maxlength="20" placeholder="Your name">`
-        : `<div class="row"><input id="nmgrs" type="number" min="2" max="10" value="4" onchange="render_localnames(this.value)"></div>
-           <div id="localnames" class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div>`}
-      </div>
-      <button class="primary big" onclick="createGame()">${isHost?"Create room →":"Continue to lobby →"}</button>
-      <button class="ghost" onclick="screen='home';render()">← Back</button>
-      ${UI.lastError?`<div class="notice warn">${esc(UI.lastError)}</div>`:""}
-    </div>
-  </div>`;
+  <main class="panel panel-narrow stack">
+    <h2>${isHost?"Host a room":"Pass and play"}</h2>
+    ${isHost
+      ? `<label class="field"><span>Your name</span><input id="hostname" maxlength="20" autocomplete="nickname"></label>
+         <p class="small muted">You take the first manager seat and hold the gavel.</p>`
+      : `<label class="field"><span>Managers at the table</span><input id="nmgrs" type="number" min="2" max="10" value="4" onchange="render_localnames(this.value)"></label>
+         <div id="localnames" class="stack" style="grid-template-columns:1fr 1fr;gap:var(--s2)"></div>`}
+    <button class="btn btn-primary btn-lg btn-block" onclick="createGame()">${isHost?"Open the room":"Set the rules"}</button>
+    <button class="btn btn-quiet btn-block" onclick="screen='home';render()">Back</button>
+    ${UI.lastError?`<p class="notice bad">${esc(UI.lastError)}</p>`:""}
+  </main>`;
 }
 function render_localnames(n){
   n=Math.max(2,Math.min(10,parseInt(n)||4));
@@ -707,7 +822,7 @@ function render_localnames(n){
   let html="";
   for(let i=0;i<n;i++){
     const prev=document.getElementById("mn"+i);
-    html+=`<input id="mn${i}" maxlength="20" placeholder="Manager ${i+1}" value="${prev?esc(prev.value):""}">`;
+    html+=`<input id="mn${i}" maxlength="20" aria-label="Manager ${i+1} name" placeholder="Manager ${i+1}" value="${prev?esc(prev.value):""}">`;
   }
   box.innerHTML=html;
 }
@@ -715,7 +830,7 @@ function createGame(){
   UI.lastError="";
   if(setupMode==="host"){
     const name=(document.getElementById("hostname").value||"").trim();
-    if(!name){ UI.lastError="Enter your name."; render(); return; }
+    if(!name){ UI.lastError="Add your name first."; render(); return; }
     NET.myName=name; NET.myId=1;
     S=newState([makeManager(1,name)],defaultSettings());
     hostRoom(genCode());
@@ -725,7 +840,8 @@ function createGame(){
     const n=Math.max(2,Math.min(10,parseInt(document.getElementById("nmgrs").value)||4));
     const managers=[];
     for(let i=0;i<n;i++){
-      const v=(document.getElementById("mn"+i)?.value||"").trim()||("Manager "+(i+1));
+      const el=document.getElementById("mn"+i);
+      const v=((el&&el.value)||"").trim()||("Manager "+(i+1));
       managers.push(makeManager(i+1,v));
     }
     S=newState(managers,defaultSettings());
@@ -741,76 +857,81 @@ function resumeSaved(){
     else NET.mode="local";
     if(NET.mode==="host")S.managers.forEach(m=>{if(m.name===NET.myName)m.connected=true;});
     sync(); toast("Auction restored");
-  }catch(e){ toast("Couldn't restore save"); localStorage.removeItem(LS_STATE); }
+  }catch(e){ toast("That save would not load"); localStorage.removeItem(LS_STATE); }
 }
 
 /* ---------- lobby ---------- */
 function viewLobby(state,canEdit){
   const set=state.settings;
+  const online=NET.mode!=="local";
   const mgrs=state.managers.map(m=>`
-    <div class="mcard ${m.id===NET.myId&&NET.mode!=="local"?"me":""}">
-      <div class="mname">${esc(m.name)} ${NET.mode!=="local"?(m.connected||m.id===NET.myId&&NET.mode==="host"?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'):""}</div>
-      <div class="mmeta"><span>Budget <b>${money(set.budget)}</b></span>
-      ${canEdit&&state.managers.length>2&&NET.mode==="local"?`<button class="ghost small" style="padding:2px 8px" onclick="removeManager(${m.id})">✕</button>`:""}</div>
+    <div class="mgr">
+      <div class="mgr-head">
+        <span class="mgr-name">${esc(m.name)} ${online&&m.id===NET.myId?`<span class="tagline you">You</span>`:""}</span>
+        ${online?`<span class="dot ${m.connected||(m.id===NET.myId&&NET.mode==="host")?"":"off"}" title="${m.connected?"Connected":"Away"}"></span>`:""}
+        ${canEdit&&!online&&state.managers.length>2?`<button class="btn btn-quiet btn-sm" onclick="removeManager(${m.id})" aria-label="Remove ${esc(m.name)}">Remove</button>`:""}
+      </div>
+      <div class="small muted mt-s">Purse ${money(set.budget)}</div>
     </div>`).join("");
-  const settingsPanel=canEdit?`
-    <div class="card mt"><h3>Auction rules</h3>
-      <div class="setgrid mt">
-        ${numSet("budget","Budget / manager",set.budget,50,250,5)}
+  const rules=canEdit?`
+    <section class="panel mt">
+      <h3>Playing conditions</h3>
+      <div class="rules mt-s">
+        ${numSet("budget","Purse per manager",set.budget,50,250,5)}
         ${numSet("squadSize","Squad size",set.squadSize,11,15,1)}
-        ${numSet("maxOverseas","Max overseas",set.maxOverseas,2,6,1)}
+        ${numSet("maxOverseas","Overseas cap",set.maxOverseas,2,6,1)}
         ${numSet("minBAT","Min batters",set.minBAT,0,8,1)}
         ${numSet("minBOWL","Min bowlers",set.minBOWL,0,8,1)}
         ${numSet("minAR","Min all-rounders",set.minAR,0,8,1)}
         ${numSet("minWK","Min keepers",set.minWK,0,4,1)}
-        <div class="setitem"><label>Bid increment</label>
+        <label class="field"><span>Bid step</span>
           <select onchange="setRule('increment',parseFloat(this.value))">
-            ${[0.25,0.5,1].map(v=>`<option value="${v}" ${set.increment===v?"selected":""}>${fmt(v)}</option>`).join("")}
-          </select></div>
-        <div class="setitem"><label>Player order</label>
+            ${[0.25,0.5,1].map(v=>`<option value="${v}" ${set.increment===v?"selected":""}>${money(v)}</option>`).join("")}
+          </select></label>
+        <label class="field"><span>Batting order</span>
           <select onchange="setRule('order',this.value)">
-            <option value="random" ${set.order==="random"?"selected":""}>Random</option>
-            <option value="price" ${set.order==="price"?"selected":""}>Base price (high → low)</option>
-          </select></div>
-        <div class="setitem"><label>Marquee round first (≥ ¤14)</label>
-          <input type="checkbox" ${set.marqueeFirst?"checked":""} onchange="setRule('marqueeFirst',this.checked)"></div>
-        <div class="setitem"><label>Bid timer</label>
-          <div class="row"><input type="checkbox" ${set.timerOn?"checked":""} onchange="setRule('timerOn',this.checked)">
-          <input type="number" min="5" max="120" value="${set.timerSecs}" onchange="setRule('timerSecs',Math.max(5,parseInt(this.value)||15))"> sec</div></div>
+            <option value="random" ${set.order==="random"?"selected":""}>Shuffled</option>
+            <option value="price" ${set.order==="price"?"selected":""}>Dearest first</option>
+          </select></label>
+        <label class="field"><span>Bid clock, seconds</span>
+          <input type="number" min="5" max="120" value="${set.timerSecs}" onchange="setRule('timerSecs',Math.max(5,parseInt(this.value)||15))"></label>
+        <label class="check"><input type="checkbox" ${set.timerOn?"checked":""} onchange="setRule('timerOn',this.checked)"> Run the bid clock</label>
+        <label class="check"><input type="checkbox" ${set.marqueeFirst?"checked":""} onchange="setRule('marqueeFirst',this.checked)"> Marquee players first (base ${money(14)} and up)</label>
       </div>
-    </div>`:"";
-  return `${header(state,`<button onclick="UI.pool=true;render()">Player pool</button>`)}
+    </section>`:"";
+  return `${header(state,`<button class="btn btn-sm" onclick="UI.pool=true;render()">Player pool</button>`)}
+  <main>
   ${NET.mode==="host"?`
-    <div class="card center mb">
-      <div class="small dim" style="letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Share this code with your mates</div>
-      <div class="codebox" onclick="copyLink()" title="Click to copy">${esc(NET.code||"")}</div>
-      <div class="small dim mt">They open this same site and hit “Join a room”. Click the code to copy an invite link.</div>
-    </div>`:""}
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <h3>Managers (${state.managers.length}/10)</h3>
-      ${NET.mode==="local"&&canEdit?`<button onclick="addLocalManager()">+ Add manager</button>`:""}
+    <section class="panel stack" style="text-align:center">
+      <p class="label">Read this code out to your mates</p>
+      <button class="codecells" onclick="copyLink()" aria-label="Room code ${esc(NET.code||"")}. Copy the invite link">${String(NET.code||"").split("").map(ch=>`<span>${esc(ch)}</span>`).join("")}</button>
+      <p class="small muted">They open this site and pick Join with a code. Tap the code to copy an invite link.</p>
+    </section>`:""}
+  <section class="panel ${NET.mode==="host"?"mt":""}">
+    <div class="row between">
+      <h3>Managers ${state.managers.length} of 10</h3>
+      ${!online&&canEdit?`<button class="btn btn-sm" onclick="addLocalManager()">Add a manager</button>`:""}
     </div>
-    <div class="mgrgrid mt">${mgrs}</div>
-    ${NET.mode==="client"?`<p class="dim small mt">Waiting for the host to start the auction…</p>`:""}
-  </div>
-  ${settingsPanel}
+    <div class="board mt-s">${mgrs}</div>
+    ${NET.mode==="client"?`<p class="muted mt-s">Waiting on the host to start play.</p>`:""}
+  </section>
+  ${rules}
   ${canEdit?`
-    <div class="row mt" style="justify-content:space-between">
-      <button onclick="UI.editPlayers=true;UI.pool=true;render()">✎ Edit players &amp; prices</button>
+    <div class="row between mt">
+      <button class="btn" onclick="UI.editPlayers=true;UI.pool=true;render()">Edit players and prices</button>
       <div class="row">
-        <button class="danger" onclick="restartAll()">Quit</button>
-        <button class="gold big" onclick="startAuction()">🔨 Start the auction</button>
+        <button class="btn btn-danger" onclick="restartAll()">Abandon</button>
+        <button class="btn btn-primary btn-lg" onclick="startAuction()">Start the auction</button>
       </div>
     </div>
-    ${UI.lastError?`<div class="notice warn mt">${esc(UI.lastError)}</div>`:""}
-    <div class="notice mt small">Heads-up: squads were compiled mid-season from public sources. Test stars (Smith, Head, Green, Marsh…) had limited BBL availability, and late signings may be missing — use <b>Edit players</b> to tweak before you start.</div>`:""}
-  `;
+    ${UI.lastError?`<p class="notice bad mt-s">${esc(UI.lastError)}</p>`:""}`:""}
+  <p class="small muted mt">Squad data as of ${DATA_AS_OF}. Sources: ${DATA_SOURCES.join(", ")}. Availability notes sit beside each player in the pool. Lists can still move before the first game on 12 December.</p>
+  </main>`;
 }
 function numSet(key,label,val,min,max,step){
-  return `<div class="setitem"><label>${label}</label>
+  return `<label class="field"><span>${label}</span>
     <input type="number" min="${min}" max="${max}" step="${step}" value="${val}"
-      onchange="setRule('${key}',Math.max(${min},Math.min(${max},parseFloat(this.value)||${val})))"></div>`;
+      onchange="setRule('${key}',Math.max(${min},Math.min(${max},parseFloat(this.value)||${val})))"></label>`;
 }
 function setRule(k,v){ S.settings[k]=v; sync(); }
 function addLocalManager(){
@@ -827,106 +948,119 @@ function viewAuction(state,canControl){
   const set=state.settings;
   if(!state.current) return viewRoundEnd(state,canControl);
   const p=byId(state,state.current.playerId);
-  const tc=TEAM_COLORS[p.team]||"#4c8dff";
   const cur=state.current;
   const leader=cur.bidderId!=null?state.managers.find(m=>m.id===cur.bidderId):null;
   const next=nextBid(state);
   const left=state.queue.length-state.qIndex-1;
   const isMarquee=p.basePrice>=14&&set.marqueeFirst&&state.round===1;
+  const bidKey=cur.playerId+":"+cur.bid+":"+cur.bidderId;
+  const bump=lastBidShown!==null&&lastBidShown!==bidKey&&cur.bidderId!=null;
+  lastBidShown=bidKey;
 
   let bidControls="";
   if(NET.mode==="local"){
-    bidControls=`<div class="bidbtns">`+state.managers.map(m=>{
-      const block=cur.bidderId===m.id?"Highest bidder":bidBlockReason(state,m,p,next);
-      return `<button class="bidbtn ${cur.bidderId===m.id?"gold":""}" ${block&&cur.bidderId!==m.id?`disabled title="${esc(block)}"`:cur.bidderId===m.id?"disabled":""} onclick="placeBid(${m.id})">
-        <span class="nm">${esc(m.name)}</span>
-        <span class="amt">${cur.bidderId===m.id?"LEADING":"Bid "+money(next)}</span>
-        <span class="rem">${money(set.budget-m.spent)} left · ${m.squad.length}/${set.squadSize}</span>
+    bidControls=`<div class="bidgrid">`+state.managers.map(m=>{
+      const leading=cur.bidderId===m.id;
+      const block=leading?null:bidBlockReason(state,m,p,next);
+      return `<button class="btn ${leading?"":"btn-primary"} bid ${leading?"leading":""}" ${leading||block?"disabled":""} onclick="placeBid(${m.id})">
+        <span class="who">${esc(m.name)}</span>
+        <span>${leading?"Leading":"Bid "+money(next)}</span>
+        <small>${block?esc(block):money(set.budget-m.spent)+" left, "+m.squad.length+" of "+set.squadSize}</small>
       </button>`;}).join("")+`</div>`;
   } else {
     const me=state.managers.find(m=>m.id===NET.myId);
     if(NET.spectator||!me){
-      bidControls=`<p class="dim center mt">You're spectating this auction.</p>`;
+      bidControls=`<p class="muted" style="text-align:center">You are watching from the hill. No paddle this time.</p>`;
     } else {
-      const block=cur.bidderId===me.id?null:bidBlockReason(state,me,p,next);
       const leading=cur.bidderId===me.id;
-      bidControls=`<div class="center mt">
-        <button class="${leading?"gold":"primary"} big" style="min-width:240px" ${leading||block?"disabled":""}
+      const block=leading?null:bidBlockReason(state,me,p,next);
+      bidControls=`<button class="btn ${leading?"":"btn-primary"} bid bid-solo ${leading?"leading":""}" ${leading||block?"disabled":""}
           onclick="${NET.mode==="host"?`placeBid(${me.id})`:"clientBid()"}">
-          ${leading?"👑 You're leading!":"Bid "+money(next)}
-        </button>
-        ${block&&!leading?`<div class="small dim mt">${esc(block)}</div>`:""}
-      </div>`;
+          <span>${leading?"You lead":"Bid "+money(next)}</span>
+          <small>${block?esc(block):money(set.budget-me.spent)+" left in your purse"}</small>
+        </button>`;
     }
   }
   const hostControls=canControl?`
-    <div class="row mt" style="justify-content:center">
-      <button class="gold" onclick="sellCurrent()">🔨 ${cur.bidderId!=null?"Sold!":"No bids — pass"}</button>
-      <button onclick="passCurrent()">Unsold / skip</button>
-      <button class="ghost" ${state.sold.length?"":"disabled"} onclick="undoLast()">↩ Undo last sale</button>
-      <button class="danger" onclick="finishAuction()">End auction</button>
+    <div class="hostbar">
+      <button class="btn btn-primary" onclick="sellCurrent()">${cur.bidderId!=null?"Hammer down":"No bids, pass"}</button>
+      <button class="btn" onclick="passCurrent()">Pass unsold</button>
+      <button class="btn" ${state.sold.length?"":"disabled"} onclick="undoLast()">Undo last sale</button>
+      <button class="btn btn-danger" onclick="finishAuction()">End the auction</button>
     </div>`:"";
 
   return `${header(state,`
-      <span class="small dim">${left} more in queue · round ${state.round}</span>
-      <button onclick="UI.pool=true;render()">Player pool</button>`)}
-  <div class="pcard" style="--tc:${tc}">
-    <div class="teamglow"></div>
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <span class="label">${left} to come, round ${state.round}</span>
+      <button class="btn btn-sm" onclick="UI.pool=true;render()">Player pool</button>`)}
+  <main>
+  <section class="lot" id="lot" style="${clubStyle(p.team)}" aria-live="polite">
+    <div class="lot-band">
+      <span>${esc(p.team)}</span>
+      <span>${ROLE_LABEL[p.role]||p.role}</span>
+      ${p.overseas?`<span>Overseas</span>`:""}
+      ${isMarquee?`<span>Marquee</span>`:""}
+      <span class="grow"></span><span>Base ${money(p.basePrice)}</span>
+    </div>
+    <div class="lot-body">
       <div>
-        ${isMarquee?`<span class="tag" style="background:#3a3110;color:var(--gold)">★ MARQUEE</span>`:""}
-        <div class="pname">${esc(p.name)}</div>
-        <div class="pteam">${esc(p.team)}</div>
-        <div class="row mt">
-          <span class="tag role">${ROLE_LABEL[p.role]||p.role}</span>
-          ${p.overseas?`<span class="tag os">✈ OVERSEAS</span>`:""}
-          <span class="tag" style="background:#1e2b25;color:#7be6b2">Base ${money(p.basePrice)}</span>
-        </div>
+        <div class="lot-name">${esc(p.name)}</div>
+        ${p.note||p.unverified?`<p class="lot-note">${p.unverified?`<b>Unverified.</b> `:""}${esc(p.note||"Check this one before you bid big.")}</p>`:""}
       </div>
-      <div class="center">
-        <div class="small dim" style="text-transform:uppercase;letter-spacing:2px">${leader?"Current bid":"Opening price"}</div>
-        <div class="bidnow">${money(cur.bid)}</div>
-        <div class="bidder">${leader?"👑 "+esc(leader.name):"— no bids yet —"}</div>
-        ${cur.deadline?`<div class="small dim mt" id="timerleft"></div>`:""}
+      <div class="score">
+        <div class="label">${leader?"Current bid":"Opens at"}</div>
+        <div class="amt ${bump?"bump":""}">${money(cur.bid)}</div>
+        <div class="leader ${leader?"":"none"}">${leader?esc(leader.name):"No bids yet"}</div>
       </div>
     </div>
-    ${cur.deadline?`<div class="timerwrap"><div class="timerbar" id="timerbar" style="width:100%"></div></div>`:""}
-    ${bidControls}
-    ${hostControls}
-  </div>
-  <h3 class="mt mb">Managers</h3>
-  <div class="mgrgrid">${state.managers.map(m=>mgrCard(state,m,cur.bidderId===m.id)).join("")}</div>`;
+    ${cur.deadline?`<div class="clock"><span class="secs" id="timerleft"></span><div class="track"><div class="bar" id="timerbar" style="width:100%"></div></div></div>`:""}
+    <div class="lot-actions">${bidControls}${hostControls}</div>
+  </section>
+  <h3 class="mt">The table</h3>
+  <div class="board mt-s">${state.managers.map(m=>mgrCard(state,m,cur.bidderId===m.id)).join("")}</div>
+  </main>`;
 }
 function clientBid(){ pub(topicRoot(NET.code)+"/h",{t:"bid",cid:myCid}); }
 function mgrCard(state,m,winning){
   const set=state.settings;
   const c=roleCounts(state,m);
+  const online=NET.mode!=="local";
   const chips=m.squad.map(pid=>{const p=byId(state,pid);
-    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]||"#555"}">${esc(p.name)}</span>`;}).join("");
-  return `<div class="mcard ${winning?"winning":""} ${m.id===NET.myId&&NET.mode!=="local"?"me":""}">
-    <div class="mname">${esc(m.name)}${winning?" 👑":""} ${NET.mode!=="local"?(m.connected?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'):""}</div>
-    <div class="mmeta"><span>Left <b>${money(set.budget-m.spent)}</b></span><span>Slots <b>${m.squad.length}/${set.squadSize}</b></span></div>
-    <div class="mmeta"><span>BAT ${c.BAT}/${set.minBAT} · BWL ${c.BOWL}/${set.minBOWL}</span><span>AR ${c.AR}/${set.minAR} · WK ${c.WK}/${set.minWK}</span></div>
-    <div class="mmeta"><span>Overseas <b>${osCount(state,m)}/${set.maxOverseas}</b></span><span>Spent <b>${money(m.spent)}</b></span></div>
+    return `<span class="chip">${swatch(p.team)}${esc(p.name)}</span>`;}).join("");
+  return `<div class="mgr ${winning?"lead":""}">
+    <div class="mgr-head">
+      <span class="mgr-name">${esc(m.name)} ${online&&m.id===NET.myId?`<span class="tagline you">You</span>`:""}</span>
+      <span class="mgr-left" title="Purse left">${money(set.budget-m.spent)}</span>
+    </div>
+    <div class="tagline muted">${winning?"Leading this lot":online&&!m.connected?"Away from the table":"Purse left"}</div>
+    <div class="mgr-stats">
+      <span><b>${m.squad.length}/${set.squadSize}</b>Squad</span>
+      <span><b>${osCount(state,m)}/${set.maxOverseas}</b>Overseas</span>
+      <span><b>${money(m.spent)}</b>Spent</span>
+      <span><b>${c.BAT}/${set.minBAT}</b>Bat</span>
+      <span><b>${c.BOWL}/${set.minBOWL}</b>Bowl</span>
+      <span><b>${c.AR}/${set.minAR} ${c.WK}/${set.minWK}</b>AR and WK</span>
+    </div>
     ${chips?`<div class="chips">${chips}</div>`:""}
   </div>`;
 }
 function viewRoundEnd(state,canControl){
   const unsoldList=state.unsold.map(pid=>{const p=byId(state,pid);
-    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]}">${esc(p.name)} · ${money(p.basePrice)}</span>`;}).join("");
-  return `${header(state,`<button onclick="UI.pool=true;render()">Player pool</button>`)}
-  <div class="card center">
-    <h2>Round ${state.round} complete 🏁</h2>
-    <p class="dim mt">${state.sold.length} sold · ${state.unsold.length} unsold</p>
-    ${state.unsold.length?`<div class="chips mt" style="justify-content:center">${unsoldList}</div>`:""}
-    ${canControl?`<div class="row mt" style="justify-content:center">
-      ${state.unsold.length?`<button class="primary big" onclick="reauctionUnsold()">♻ Re-auction ${state.unsold.length} unsold</button>`:""}
-      <button class="gold big" onclick="finishAuction()">Finish → results</button>
-      <button class="ghost" ${state.sold.length?"":"disabled"} onclick="undoLast()">↩ Undo last sale</button>
-    </div>`:`<p class="dim mt">Waiting for the host…</p>`}
-  </div>
-  <h3 class="mt mb">Managers</h3>
-  <div class="mgrgrid">${state.managers.map(m=>mgrCard(state,m,false)).join("")}</div>`;
+    return `<span class="chip">${swatch(p.team)}${esc(p.name)}, ${money(p.basePrice)}</span>`;}).join("");
+  return `${header(state,`<button class="btn btn-sm" onclick="UI.pool=true;render()">Player pool</button>`)}
+  <main>
+  <section class="panel stack">
+    <h2>Stumps on round ${state.round}</h2>
+    <p class="muted">${state.sold.length} sold, ${state.unsold.length} passed in.</p>
+    ${state.unsold.length?`<div class="chips">${unsoldList}</div>`:""}
+    ${canControl?`<div class="row">
+      ${state.unsold.length?`<button class="btn btn-lg" onclick="reauctionUnsold()">Re-auction the ${state.unsold.length} unsold</button>`:""}
+      <button class="btn btn-primary btn-lg" onclick="finishAuction()">Lock in the squads</button>
+      <button class="btn" ${state.sold.length?"":"disabled"} onclick="undoLast()">Undo last sale</button>
+    </div>`:`<p class="muted">Waiting on the host.</p>`}
+  </section>
+  <h3 class="mt">The table</h3>
+  <div class="board mt-s">${state.managers.map(m=>mgrCard(state,m,false)).join("")}</div>
+  </main>`;
 }
 
 /* ---------- results ---------- */
@@ -936,31 +1070,33 @@ function viewResults(state,canControl){
     const c=roleCounts(state,m);
     const ok= m.squad.length>=set.squadSize && c.BAT>=set.minBAT&&c.BOWL>=set.minBOWL&&c.AR>=set.minAR&&c.WK>=set.minWK&&osCount(state,m)<=set.maxOverseas;
     const rows=m.squad.map(pid=>{const p=byId(state,pid);const s=state.sold.find(x=>x.playerId===pid);
-      return `<tr><td style="border-left:3px solid ${TEAM_COLORS[p.team]}">${esc(p.name)}</td><td class="dim small">${esc(p.team)}</td><td>${p.role}${p.overseas?" ✈":""}</td><td style="color:var(--gold);font-weight:700">${money(s?s.price:0)}</td></tr>`;}).join("");
-    return `<div class="card mt">
-      <div class="row" style="justify-content:space-between">
-        <h3>${esc(m.name)} ${ok?"✅":"⚠️"}</h3>
-        <span class="dim small">Spent <b style="color:var(--text)">${money(m.spent)}</b> · Left <b style="color:var(--green)">${money(set.budget-m.spent)}</b> · ${m.squad.length}/${set.squadSize} players</span>
+      return `<tr><td><span class="row" style="gap:var(--s2);flex-wrap:nowrap">${swatch(p.team)}<span>${esc(p.name)}</span></span></td><td class="muted">${esc(p.team)}</td><td>${p.role}${p.overseas?", overseas":""}</td><td class="price">${money(s?s.price:0)}</td></tr>`;}).join("");
+    return `<section class="panel mt">
+      <div class="row between">
+        <h3>${esc(m.name)} ${ok?"":`<span class="pill warn">Squad short</span>`}</h3>
+        <span class="muted">Spent ${money(m.spent)}, ${money(set.budget-m.spent)} left, ${m.squad.length} of ${set.squadSize} players</span>
       </div>
-      <div class="scroll mt"><table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th>Price</th></tr></thead><tbody>${rows||`<tr><td colspan=4 class="dim">No players</td></tr>`}</tbody></table></div>
-    </div>`;}).join("");
+      <div class="scroll mt-s"><table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th>Price</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">No players bought</td></tr>`}</tbody></table></div>
+    </section>`;}).join("");
   const unsoldRows=state.unsold.map(pid=>{const p=byId(state,pid);
-    return `<span class="chip" style="--cc:${TEAM_COLORS[p.team]}">${esc(p.name)}</span>`;}).join("");
+    return `<span class="chip">${swatch(p.team)}${esc(p.name)}</span>`;}).join("");
   return `${header(state)}
-  <div class="card center">
-    <h1>🏆 Final squads</h1>
-    <div class="row mt" style="justify-content:center">
-      <button class="primary" onclick="exportCSV()">⬇ Export CSV</button>
-      <button onclick="exportJSON()">⬇ Export JSON</button>
-      ${canControl?`<button class="ghost" onclick="undoLast()" ${state.sold.length?"":"disabled"}>↩ Undo last sale</button>
-      <button class="danger" onclick="restartAll()">Restart auction</button>`:""}
+  <main>
+  <section class="panel stack">
+    <h1>Final squads</h1>
+    <div class="row">
+      <button class="btn btn-primary" onclick="exportCSV()">Download CSV</button>
+      <button class="btn" onclick="exportJSON()">Download JSON</button>
+      ${canControl?`<button class="btn" onclick="undoLast()" ${state.sold.length?"":"disabled"}>Undo last sale</button>
+      <button class="btn btn-danger" onclick="restartAll()">Start a new auction</button>`:""}
     </div>
-  </div>
+  </section>
   ${squads}
-  ${state.unsold.length?`<div class="card mt"><h3>Unsold (${state.unsold.length})</h3><div class="chips mt">${unsoldRows}</div></div>`:""}`;
+  ${state.unsold.length?`<section class="panel mt"><h3>Unsold, ${state.unsold.length}</h3><div class="chips">${unsoldRows}</div></section>`:""}
+  </main>`;
 }
 
-/* ---------- player pool browser / editor ---------- */
+/* ---------- player pool browser and editor ---------- */
 function viewPool(state){
   const canEdit=UI.editPlayers && state.phase==="lobby" && NET.mode!=="client";
   let list=state.players.filter(p=>{
@@ -973,43 +1109,44 @@ function viewPool(state){
   list=UI.poolSort==="price"?[...list].sort((a,b)=>b.basePrice-a.basePrice):[...list].sort((a,b)=>a.name.localeCompare(b.name));
   const status=p=>{
     const s=state.sold.find(x=>x.playerId===p.id);
-    if(s){const m=state.managers.find(x=>x.id===s.managerId);return `<span style="color:var(--green)">→ ${esc(m?m.name:"?")} ${money(s.price)}</span>`;}
-    if(state.unsold.includes(p.id))return `<span style="color:var(--red)">unsold</span>`;
-    return `<span class="dim">available</span>`;
+    if(s){const m=state.managers.find(x=>x.id===s.managerId);return `${esc(m?m.name:"?")}, ${money(s.price)}`;}
+    if(state.unsold.includes(p.id))return `<span style="color:var(--danger)">Unsold</span>`;
+    return `<span class="muted">Available</span>`;
   };
   const rows=list.map(p=>`<tr>
-    <td style="border-left:3px solid ${TEAM_COLORS[p.team]}">${esc(p.name)}</td>
-    <td class="dim small">${esc(p.team)}</td><td>${p.role}${p.overseas?" ✈":""}</td>
-    <td>${canEdit?`<input type="number" step="0.5" min="1" value="${p.basePrice}" style="width:70px" onchange="editPrice(${p.id},this.value)">`:money(p.basePrice)}</td>
-    <td class="small">${status(p)}</td>
-    ${canEdit?`<td><button class="ghost small" style="padding:2px 8px;color:var(--red)" onclick="removePlayer(${p.id})">✕</button></td>`:""}
+    <td><span class="row" style="gap:var(--s2);flex-wrap:nowrap;align-items:flex-start">${swatch(p.team)}<span>${esc(p.name)} ${p.unverified?`<span class="pill warn">Unverified</span>`:""}${p.note?`<span class="small muted" style="display:block">${esc(p.note)}</span>`:""}</span></span></td>
+    <td class="muted">${esc(p.team)}</td><td>${p.role}${p.overseas?", overseas":""}</td>
+    <td class="price">${canEdit?`<input type="number" step="0.5" min="1" value="${p.basePrice}" aria-label="Base price for ${esc(p.name)}" onchange="editPrice(${p.id},this.value)">`:money(p.basePrice)}</td>
+    <td>${status(p)}</td>
+    ${canEdit?`<td><button class="btn btn-quiet btn-sm" onclick="removePlayer(${p.id})" aria-label="Remove ${esc(p.name)}">Remove</button></td>`:""}
   </tr>`).join("");
   return `<div class="modal" onclick="if(event.target===this){UI.pool=false;UI.editPlayers=false;render()}">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2>${canEdit?"Edit players":"Player pool"} <span class="dim small">(${list.length}/${state.players.length})</span></h2>
-        <button onclick="UI.pool=false;UI.editPlayers=false;render()">✕ Close</button>
+    <div class="panel" role="dialog" aria-label="Player pool">
+      <div class="row between">
+        <h2>${canEdit?"Edit the pool":"Player pool"}</h2>
+        <button class="btn btn-sm" onclick="UI.pool=false;UI.editPlayers=false;render()">Close</button>
       </div>
-      <div class="row mt">
-        <input placeholder="Search…" value="${esc(UI.poolQ)}" oninput="UI.poolQ=this.value;render();this.focus();this.setSelectionRange(this.value.length,this.value.length)" style="flex:1;min-width:130px">
-        <select onchange="UI.poolTeam=this.value;render()"><option value="">All clubs</option>
-          ${Object.keys(TEAM_COLORS).map(t=>`<option ${UI.poolTeam===t?"selected":""}>${t}</option>`).join("")}</select>
-        <select onchange="UI.poolRole=this.value;render()"><option value="">All roles</option>
+      <p class="small muted mt-s">Showing ${list.length} of ${state.players.length}. Data as of ${DATA_AS_OF}.</p>
+      <div class="filters mt-s">
+        <input aria-label="Search players" placeholder="Search by name" value="${esc(UI.poolQ)}" oninput="UI.poolQ=this.value;render();const i=document.querySelector('.filters input');i.focus();i.setSelectionRange(i.value.length,i.value.length)">
+        <select aria-label="Club" onchange="UI.poolTeam=this.value;render()"><option value="">All clubs</option>
+          ${Object.keys(TEAMS).map(t=>`<option ${UI.poolTeam===t?"selected":""}>${t}</option>`).join("")}</select>
+        <select aria-label="Role" onchange="UI.poolRole=this.value;render()"><option value="">All roles</option>
           ${ROLES.map(r=>`<option ${UI.poolRole===r?"selected":""}>${r}</option>`).join("")}</select>
-        <label class="row small dim"><input type="checkbox" ${UI.poolOS?"checked":""} onchange="UI.poolOS=this.checked;render()"> Overseas</label>
-        <select onchange="UI.poolSort=this.value;render()">
-          <option value="price" ${UI.poolSort==="price"?"selected":""}>Sort: price</option>
-          <option value="name" ${UI.poolSort==="name"?"selected":""}>Sort: name</option></select>
+        <label class="check"><input type="checkbox" ${UI.poolOS?"checked":""} onchange="UI.poolOS=this.checked;render()"> Overseas only</label>
+        <select aria-label="Sort" onchange="UI.poolSort=this.value;render()">
+          <option value="price" ${UI.poolSort==="price"?"selected":""}>Dearest first</option>
+          <option value="name" ${UI.poolSort==="name"?"selected":""}>A to Z</option></select>
       </div>
-      ${canEdit?`<div class="row mt">
-        <input id="npName" placeholder="Add player name" style="flex:1;min-width:120px">
-        <select id="npTeam">${Object.keys(TEAM_COLORS).map(t=>`<option>${t}</option>`).join("")}</select>
-        <select id="npRole">${ROLES.map(r=>`<option>${r}</option>`).join("")}</select>
-        <label class="row small dim"><input id="npOS" type="checkbox"> ✈</label>
-        <input id="npPrice" type="number" step="0.5" min="1" value="5" style="width:70px">
-        <button class="primary" onclick="addPlayer()">+ Add</button>
+      ${canEdit?`<div class="addrow mt-s">
+        <input id="npName" aria-label="New player name" placeholder="Add a player">
+        <select id="npTeam" aria-label="New player club">${Object.keys(TEAMS).map(t=>`<option>${t}</option>`).join("")}</select>
+        <select id="npRole" aria-label="New player role">${ROLES.map(r=>`<option>${r}</option>`).join("")}</select>
+        <label class="check"><input id="npOS" type="checkbox"> Overseas</label>
+        <input id="npPrice" aria-label="New player base price" type="number" step="0.5" min="1" value="5">
+        <button class="btn btn-primary btn-sm" onclick="addPlayer()">Add</button>
       </div>`:""}
-      <div class="scroll mt" style="max-height:60vh;overflow-y:auto">
+      <div class="scroll mt-s" style="max-height:60vh;overflow-y:auto">
         <table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th>Base</th><th>Status</th>${canEdit?"<th></th>":""}</tr></thead>
         <tbody>${rows}</tbody></table>
       </div>
@@ -1026,10 +1163,135 @@ function addPlayer(){
   sync();
 }
 
+/* Timer urgency: the last five seconds turn the clock red. */
+function tickUrgency(){
+  const state=st(), lot=document.getElementById("lot");
+  if(!lot||!state||!state.current||!state.current.deadline)return;
+  const left=state.current.deadline-Date.now();
+  if(left<=5000) lot.setAttribute("data-urgent",""); else lot.removeAttribute("data-urgent");
+}
+setInterval(tickUrgency,250);
+
+/* ================= THE BALL (one 3D moment, home screen only) =================
+   A white Kookaburra-style ball built in code: leather sphere with a generated grain map,
+   a raised seam and six rows of instanced stitches. Three.js is lazy-loaded from a CDN.
+   If it fails to load, or WebGL is refused, the inline SVG below stays in place. */
+const BALL_SVG = `<svg viewBox="0 0 200 200" role="img" aria-label="Cricket ball">
+  <circle cx="100" cy="100" r="88" fill="#e9e4d6"/>
+  <path d="M100 12a88 88 0 0 1 0 176a120 120 0 0 0 0-176z" fill="#cfc9b8"/>
+  <g fill="none" stroke="#8d8672" stroke-width="2.5">
+    <path d="M70 18c-26 50-26 114 0 164"/><path d="M84 13c-24 54-24 120 0 174"/><path d="M98 12c-22 56-22 120 0 176"/>
+  </g>
+  <g fill="none" stroke="#6f6956" stroke-width="2" stroke-dasharray="3 6">
+    <path d="M63 22c-27 49-27 107 0 156"/><path d="M77 15c-25 53-25 117 0 170"/><path d="M91 12c-23 56-23 120 0 176"/><path d="M105 12c-22 56-22 120 0 176"/>
+  </g>
+</svg>`;
+const BALL = (function(){
+  const SOURCES=["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js","https://unpkg.com/three@0.128.0/build/three.min.js"];
+  let canvas=null, renderer=null, scene=null, camera=null, ball=null, raf=0, last=0, spin=0.45, loading=false, failed=false, visible=true;
+  function loadThree(i,done){
+    if(window.THREE)return done(true);
+    if(i>=SOURCES.length)return done(false);
+    const s=document.createElement("script"); s.src=SOURCES[i]; s.async=true;
+    s.onload=()=>done(!!window.THREE); s.onerror=()=>loadThree(i+1,done);
+    document.head.appendChild(s);
+  }
+  function rng(seed){ let x=seed; return ()=>{ x=(x*1664525+1013904223)%4294967296; return x/4294967296; }; }
+  function leatherMaps(){
+    const T=window.THREE, r=rng(16), w=1024, h=512;
+    const c=document.createElement("canvas"); c.width=w; c.height=h; const g=c.getContext("2d");
+    g.fillStyle="#ece7d9"; g.fillRect(0,0,w,h);
+    for(let i=0;i<9000;i++){ g.fillStyle=r()<.5?"rgba(120,112,92,.10)":"rgba(255,255,255,.14)"; g.fillRect(r()*w,r()*h,1+r()*2,1+r()*2); }
+    const scuffs=[["rgba(86,120,70,.16)",6],["rgba(140,96,70,.14)",7],["rgba(60,60,60,.08)",8]];
+    scuffs.forEach(([col,n])=>{ for(let i=0;i<n;i++){ g.fillStyle=col; g.beginPath(); g.ellipse(r()*w,r()*h,20+r()*70,6+r()*18,r()*3.14,0,6.283); g.fill(); } });
+    g.fillStyle="#1f4a37"; g.font="700 46px Arial, sans-serif"; g.textAlign="center";
+    g.fillText("BIDBASH",w*0.25,h*0.30); g.font="700 20px Arial, sans-serif"; g.fillText("156 g  TURF",w*0.25,h*0.30+30);
+    const b=document.createElement("canvas"); b.width=512; b.height=256; const bg=b.getContext("2d");
+    bg.fillStyle="#808080"; bg.fillRect(0,0,512,256);
+    for(let i=0;i<14000;i++){ const v=110+Math.floor(r()*60); bg.fillStyle="rgb("+v+","+v+","+v+")"; bg.fillRect(r()*512,r()*256,1.5,1.5); }
+    const map=new T.CanvasTexture(c), bump=new T.CanvasTexture(b);
+    if(renderer.capabilities.getMaxAnisotropy) map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+    return {map,bump};
+  }
+  function build(){
+    const T=window.THREE;
+    renderer=new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:"low-power"});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    canvas=renderer.domElement;
+    scene=new T.Scene();
+    camera=new T.PerspectiveCamera(32,1,0.1,20); camera.position.set(0,0,4.6);
+    scene.add(new T.HemisphereLight(0xfff6e0,0x1a1c1b,0.55));
+    const key=new T.DirectionalLight(0xffffff,1.05); key.position.set(-2.4,3,3.2); scene.add(key);
+    const rim=new T.DirectionalLight(0xf5d21f,0.9); rim.position.set(3,-0.6,-2.5); scene.add(rim);
+    ball=new T.Group();
+    const maps=leatherMaps();
+    ball.add(new T.Mesh(new T.SphereGeometry(1,64,48),new T.MeshStandardMaterial({map:maps.map,bumpMap:maps.bump,bumpScale:0.012,roughness:0.62,metalness:0})));
+    const seamMat=new T.MeshStandardMaterial({color:0xd8d1bd,roughness:0.8});
+    [0,-0.045,0.045].forEach((y,i)=>{
+      const rad=Math.sqrt(1-y*y);
+      const ridge=new T.Mesh(new T.TorusGeometry(rad+0.004,i===0?0.02:0.012,10,128),seamMat);
+      ridge.rotation.x=Math.PI/2; ridge.position.y=y; ball.add(ridge);
+    });
+    const rows=[-0.13,-0.095,-0.06,0.06,0.095,0.13], per=96;
+    const stitches=new T.InstancedMesh(new T.CylinderGeometry(0.0065,0.0065,0.034,6),new T.MeshStandardMaterial({color:0xbdb59e,roughness:0.9}),rows.length*per);
+    const d=new T.Object3D(); let n=0;
+    rows.forEach((y,ri)=>{
+      const rad=Math.sqrt(1-y*y);
+      for(let k=0;k<per;k++){
+        const a=(k+(ri%2)*0.5)/per*Math.PI*2;
+        d.position.set(Math.cos(a)*rad*1.006,y,Math.sin(a)*rad*1.006);
+        d.lookAt(0,0,0); d.rotateZ(y>0?0.55:-0.55); d.updateMatrix();
+        stitches.setMatrixAt(n++,d.matrix);
+      }
+    });
+    ball.add(stitches);
+    ball.rotation.set(0.35,0.6,-1.05);
+    scene.add(ball);
+    canvas.addEventListener("pointerdown",()=>{ spin=4.5; start(); });
+    if(window.IntersectionObserver) new IntersectionObserver(es=>{ visible=es[0].isIntersecting; if(visible)start(); }).observe(canvas);
+    document.addEventListener("visibilitychange",()=>{ if(!document.hidden)start(); });
+    window.addEventListener("resize",size);
+  }
+  function size(){
+    if(!canvas||!canvas.parentNode)return;
+    const w=canvas.parentNode.clientWidth||300;
+    renderer.setSize(w,w,false);
+  }
+  function frame(t){
+    raf=0;
+    if(!canvas.isConnected||document.hidden||!visible)return;
+    const dt=Math.min(0.05,(t-last)/1000||0.016); last=t;
+    spin+=(0.45-spin)*Math.min(1,dt*1.6);
+    ball.rotateOnWorldAxis(AXIS,spin*dt);
+    renderer.render(scene,camera);
+    if(!REDUCED) raf=requestAnimationFrame(frame);
+  }
+  let AXIS=null;
+  function start(){ if(!raf&&canvas&&canvas.isConnected){ last=performance.now(); raf=requestAnimationFrame(frame); } }
+  function attach(){
+    const stage=document.getElementById("ballstage");
+    if(!stage||!canvas)return;
+    stage.innerHTML=""; stage.appendChild(canvas); size(); start();
+  }
+  function mount(){
+    if(failed)return;
+    if(canvas)return attach();
+    if(loading)return;
+    loading=true;
+    const go=()=>loadThree(0,ok=>{
+      loading=false;
+      if(!ok){ failed=true; return; }
+      try{ build(); AXIS=new window.THREE.Vector3(0.25,1,0).normalize(); attach(); }
+      catch(e){ failed=true; canvas=null; }
+    });
+    if(window.requestIdleCallback) requestIdleCallback(go,{timeout:1500}); else setTimeout(go,200);
+  }
+  return {mount};
+})();
+
 /* ================= BOOT ================= */
 window.addEventListener("load",()=>{
-  if(location.hash && location.hash.length>3 && peerAvailable()){ goJoin(); return; }
-  render();
+  if(location.hash && location.hash.length>3 && peerAvailable() && !st()){ goJoin(); }
 });
 render();
 </script>
