@@ -167,11 +167,100 @@ td.price{font-family:var(--display);font-weight:700;font-size:18px;color:var(--a
 @keyframes drop{from{transform:translateY(-8px)}to{transform:none}}
 #stamp{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);pointer-events:none;padding:var(--s4)}
 #stamp.on{display:flex}
-#stamp .ink{border:8px solid var(--danger);color:var(--danger);border-radius:var(--r);padding:var(--s4) var(--s6);text-align:center;transform:rotate(-6deg);background:var(--bg);animation:thump .28s cubic-bezier(.2,1.4,.4,1)}
+#stamp .stampwrap{position:relative}
+#stamp .ink{border:8px solid var(--danger);color:var(--danger);border-radius:var(--r);padding:var(--s4) var(--s6);text-align:center;transform:rotate(-6deg);background:var(--bg);visibility:hidden}
+#stamp.hit .ink{visibility:visible;animation:thump .28s cubic-bezier(.2,1.4,.4,1)}
+#stamp.hit .stampwrap{animation:shake .22s linear}
 #stamp .word{font-family:var(--display);font-weight:800;font-size:clamp(96px,22vw,260px);line-height:.85;letter-spacing:.02em}
 #stamp .line{font-family:var(--display);font-weight:700;font-size:clamp(18px,3.2vw,36px);text-transform:uppercase;color:var(--text);margin-top:var(--s2)}
-@keyframes thump{from{transform:rotate(-6deg) scale(1.8)}to{transform:rotate(-6deg) scale(1)}}
+@keyframes thump{from{transform:rotate(-6deg) scale(1.5)}to{transform:rotate(-6deg) scale(1)}}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateY(6px)}60%{transform:translateY(-2px)}}
+/* The gavel sits off the top right corner of the stamp and strikes its edge. Purely decorative. */
+.gavelstage{--gw:clamp(190px,34vw,380px);position:absolute;width:var(--gw);height:var(--gw);left:calc(72% - var(--gw)*.26);top:calc(var(--gw)*-.67 + 20px);pointer-events:none}
+.gavelstage canvas,.gavelstage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.gavelstage .gv{transform-box:view-box;transform-origin:186px 70px}
+#stamp.swing .gavelstage .gv{animation:swing .3s cubic-bezier(.55,0,1,.45) both}
+@keyframes swing{from{transform:rotate(-52deg)}to{transform:rotate(0)}}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Typed bids */
+.bidrow{display:grid;gap:var(--s3);justify-items:center}
+.quick{display:flex;gap:var(--s3);justify-content:center;flex-wrap:wrap}
+.quick .btn{min-width:120px;font-size:24px}
+.typebid{display:flex;gap:var(--s3);align-items:flex-end;justify-content:center;flex-wrap:wrap;max-width:560px;margin:0 auto;width:100%}
+.typebid .grow{flex:1;min-width:160px}
+.typebid select{width:auto;min-width:140px}
+.money-in{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:var(--r)}
+.money-in:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.money-in b{font-family:var(--display);font-size:24px;color:var(--muted);padding-left:var(--s3)}
+.money-in input{border:0;font-family:var(--display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;outline:none;padding-left:var(--s2)}
+.bidhelp{text-align:center;color:var(--muted);font-size:13px}
+.bidhelp b{color:var(--text);font-family:var(--display);font-size:18px}
+.biderr{text-align:center;color:var(--text);background:var(--raised);border:1px solid var(--danger);border-radius:var(--r);padding:var(--s2) var(--s3);max-width:560px;margin:0 auto;font-weight:600}
+.clock .going{font-family:var(--display);font-weight:800;font-size:36px;text-transform:uppercase;letter-spacing:.04em;color:var(--danger);min-width:6.4ch;text-align:right}
 
+
+/* League: tabs, table, the field, cards, bench */
+.lgname{font-family:var(--display);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+a.wordmark{color:var(--text);text-decoration:none}
+.tabs{display:flex;gap:var(--s1);overflow-x:auto;margin:calc(var(--s5)*-1) 0 var(--s5);padding:var(--s2) 0;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tab{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.06em;text-transform:uppercase;background:none;border:0;color:var(--muted);min-height:44px;padding:0 var(--s3);border-radius:var(--r);cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--raised)}
+.tab.on{color:var(--accent-ink);background:var(--accent)}
+.linkbtn{background:none;border:0;color:var(--text);font:inherit;font-weight:600;cursor:pointer;padding:var(--s1) 0;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.linkbtn:hover{text-decoration-color:var(--accent)}
+td.num,th.num{text-align:right;font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;font-size:18px}
+td.big{font-size:24px;color:var(--accent)}
+.bad-text{color:var(--danger)}
+.teamgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--s4);align-items:start}
+.pitchwrap{background:#0f2418;border:1px solid #23412f;border-radius:var(--r);padding:var(--s4);position:relative;overflow:hidden}
+/* Subtle pitch markings: a boundary oval and the 22 yard strip, drawn with borders only. */
+.pitchwrap::before{content:"";position:absolute;inset:4% 3%;border:2px solid rgba(244,242,234,.07);border-radius:50%;pointer-events:none}
+.pitchwrap::after{content:"";position:absolute;left:50%;top:22%;width:46px;height:56%;transform:translateX(-50%);background:#16301f;border:1px solid rgba(244,242,234,.06);pointer-events:none}
+.pitch{position:relative;z-index:1;display:grid;gap:var(--s4)}
+.pgroup{display:grid;gap:var(--s2);justify-items:center}
+.pillhead{display:inline-flex;align-items:center;gap:var(--s3);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:var(--s1) var(--s4);font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.pillhead b{color:var(--accent);font-variant-numeric:tabular-nums}
+.pcards{display:flex;flex-wrap:wrap;gap:var(--s2);justify-content:center;width:100%}
+.pcards.col{flex-direction:column;align-items:stretch}
+.pcard{position:relative;display:grid;gap:2px;text-align:left;width:164px;min-height:88px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-left:6px solid var(--club);border-radius:var(--r);padding:var(--s2) var(--s3);cursor:pointer;box-shadow:0 2px 0 #000;transition:transform .08s ease-out}
+.pcards.col .pcard{width:auto}
+.pcard:hover{transform:translateY(-1px)}
+.pcard:active{transform:translateY(2px);box-shadow:none}
+.pcard.sel{outline:3px solid var(--accent);outline-offset:1px}
+.pname{font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.pmeta{font-size:13px;color:var(--muted)}
+.ppts{display:flex;gap:var(--s3);font-size:13px;color:var(--muted)}
+.ppts b{font-family:var(--display);font-size:18px;color:var(--text);font-variant-numeric:tabular-nums}
+.eorder{position:absolute;top:var(--s1);right:var(--s2);font-family:var(--display);font-weight:800;font-size:15px;color:var(--accent)}
+.empty{color:var(--muted);font-size:13px;padding:var(--s3)}
+.pitchfoot{display:flex;gap:var(--s3);justify-content:center;align-items:center;flex-wrap:wrap;font-family:var(--display);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.04em}
+.pitchfoot b{color:var(--accent)}
+.pitchfoot .small{font-family:var(--body);text-transform:none;letter-spacing:0;color:var(--text);font-weight:500}
+.bench{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);display:grid;gap:var(--s3)}
+.actionbar{position:sticky;bottom:var(--s3);z-index:5;display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;background:var(--raised);border:1px solid var(--accent);border-radius:var(--r);padding:var(--s3)}
+.actionbar .small{flex:1 1 220px}
+.fixtures{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--s3)}
+.fixture{display:grid;gap:var(--s1);text-align:left;background:var(--raised);color:var(--text);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3);cursor:pointer;font:inherit}
+.fixture:hover{border-color:#59605b}
+.ftitle{font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase}
+.livetag{color:var(--danger)}
+.votes{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.trades,.log{list-style:none;display:grid;gap:var(--s2)}
+.trade{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:center;background:var(--raised);border-radius:var(--r);padding:var(--s3)}
+.trade>span:first-child{flex:1 1 280px}
+.log li{display:grid;grid-template-columns:150px 1fr;gap:var(--s3);padding:var(--s2) 0;border-bottom:1px solid var(--line)}
+.tradecols{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}
+.tradecols .check{display:flex;white-space:normal;font-size:15px;color:var(--text);min-height:36px}
+.scoregrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--s5)}
+details summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+@media (max-width:820px){
+  .teamgrid{grid-template-columns:1fr}
+  .pcard{width:calc(50% - var(--s1));min-width:0}
+  .pitchwrap{padding:var(--s3)}
+  .log li{grid-template-columns:1fr;gap:0}
+  .tradecols{grid-template-columns:1fr}
+  .tabs{margin-top:calc(var(--s4)*-1)}
+}
 @media (max-width:820px){
   h1{font-size:36px} h2{font-size:24px}
   .home{grid-template-columns:1fr;gap:var(--s4);min-height:0;padding-top:var(--s4)}
@@ -180,7 +269,9 @@ td.price{font-family:var(--display);font-weight:700;font-size:18px;color:var(--a
   .lot-band{font-size:18px;padding:var(--s3) var(--s4);gap:var(--s3)}
   .lot-body{grid-template-columns:1fr;gap:var(--s4);padding:var(--s5) var(--s4)}
   .score{text-align:left}
-  .clock{padding:0 var(--s4) var(--s4)} .clock .secs{font-size:36px}
+  .clock{padding:0 var(--s4) var(--s4);flex-wrap:wrap} .clock .secs{font-size:36px}
+  .clock .going{font-size:24px;min-width:0}
+  .quick .btn{min-width:0;flex:1}
   .lot-actions{padding:var(--s4)}
   .bidgrid{grid-template-columns:1fr 1fr}
   .bid{min-height:72px;font-size:24px}
@@ -196,7 +287,8 @@ td.price{font-family:var(--display);font-weight:700;font-size:18px;color:var(--a
 </head>
 <body>
 <div id="toasts" role="status" aria-live="polite"></div>
-<div id="stamp" aria-hidden="true"><div class="ink"><div class="word">SOLD</div><div class="line" id="stampline"></div></div></div>
+<div id="stamp" aria-hidden="true"><div class="stampwrap"><div class="ink"><div class="word">SOLD</div><div class="line" id="stampline"></div></div><div class="gavelstage" id="gavelstage"></div></div></div>
+<div id="saleline" class="sr-only" role="status" aria-live="assertive"></div>
 <div id="app"></div>
 <script>
 "use strict";
@@ -359,6 +451,22 @@ const PLAYERS = [
 const ROLES = ["BAT","BOWL","AR","WK"];
 const ROLE_LABEL = {BAT:"Batter",BOWL:"Bowler",AR:"All-rounder",WK:"Keeper"};
 
+/* ================= SCORING =================
+   The one place the points rules live. The points fetcher (scripts/points.py) reads this exact
+   block, so keep it valid JSON between the markers. Bands are checked top down; the first match wins.
+   runBonuses: only the highest bonus reached counts (100 runs = 100 + 20, not + 10 as well). */
+/*SCORING_START*/
+const SCORING = {
+  "batting":  {"perRun": 1, "srMinRuns": 20,
+               "srBands": [[160, 25], [150, 20], [140, 15], [130, 10], [120, 5]],
+               "runBonuses": [[100, 20], [50, 10]]},
+  "bowling":  {"perWicket": 20, "perThreeWickets": 10, "perMaiden": 15, "perDot": 1, "perExtra": -1,
+               "econMinBalls": 18,
+               "econBands": [[4, 25], [5, 20], [6, 15], [7, 10], [8, 5]]},
+  "fielding": {"catch": 10, "runOut": 20, "stumping": 15}
+};
+/*SCORING_END*/
+
 /* ================= APP STATE ================= */
 let S = null;            // authoritative game state (host / local)
 let CS = null;           // client copy of game state (join mode)
@@ -375,14 +483,15 @@ const byId = (state,pid) => state.players.find(p=>p.id===pid);
 
 function defaultSettings(){
   return {budget:100, squadSize:13, maxOverseas:4, minBAT:4, minBOWL:4, minAR:2, minWK:1,
-          increment:0.5, order:"random", marqueeFirst:true, timerOn:true, timerSecs:15};
+          increment:0.5, order:"random", marqueeFirst:true, timerOn:true, timerSecs:10};
 }
 function newState(managers, settings){
   return {
     phase:"lobby", settings,
     players: JSON.parse(JSON.stringify(PLAYERS)),
     managers, queue:[], qIndex:0, current:null,
-    sold:[], unsold:[], round:1
+    sold:[], unsold:[], round:1,
+    paused:false, saleSeq:0, lastSale:null
   };
 }
 function makeManager(id,name){ return {id, name, squad:[], spent:0, connected:true, cid:null}; }
@@ -420,6 +529,37 @@ function nextBid(state){
   const cur=state.current;
   const p=byId(state,cur.playerId);
   return cur.bidderId==null ? p.basePrice : Math.round((cur.bid+state.settings.increment)*100)/100;
+}
+/* Typed bids: amounts snap to the nearest 0.25. */
+const q25 = n => Math.round(n*4)/4;
+const bidRef = state => state&&state.current ? state.current.playerId+":"+state.current.bid+":"+state.current.bidderId : "";
+// The most this manager may bid on this player right now. {max, reason}: max is 0 when any bid is blocked.
+function maxBid(state,m,player){
+  const set=state.settings;
+  const slotsAfter=Math.max(0,set.squadSize-m.squad.length-1);
+  const max=Math.floor(((set.budget-m.spent)-slotsAfter*minPoolPrice(state))*4+1e-9)/4;
+  const reason=bidBlockReason(state,m,player,Math.max(0,max));
+  return reason||max<=0 ? {max:0,reason:reason||"No purse left for this lot"} : {max,reason:null};
+}
+// Client-side and host-side check of one typed amount. Returns an error string or null.
+function bidError(state,m,amount,seenRef){
+  if(state.paused) return "Bidding is paused by the host.";
+  const cur=state.current; if(!cur) return "Nobody is under the hammer.";
+  if(cur.bidderId===m.id) return "You already lead at "+money(cur.bid)+".";
+  if(!isFinite(amount)||amount<=0) return "Type an amount in dollars, like 9.5.";
+  const min=nextBid(state);
+  if(amount<min){
+    const lead=cur.bidderId!=null?state.managers.find(x=>x.id===cur.bidderId):null;
+    if(seenRef!=null&&seenRef!==bidRef(state)&&lead) return "Outbid: "+lead.name+" is on "+money(cur.bid)+". The least you can bid now is "+money(min)+".";
+    return "Too low. The least you can bid is "+money(min)+".";
+  }
+  const p=byId(state,cur.playerId);
+  const block=bidBlockReason(state,m,p,amount);
+  if(block){
+    const mx=maxBid(state,m,p);
+    return mx.max>=min ? "Over your max. The most you can bid is "+money(mx.max)+"." : "Bid blocked: "+block+".";
+  }
+  return null;
 }
 
 /* ================= NETWORKING (MQTT over public brokers) ================= */
@@ -469,12 +609,13 @@ function hostRoom(code){
 }
 function hostOnMessage(msg){
   if(!msg||typeof msg!=="object"||!msg.cid)return;
+  if(msg.t==="ping"){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"pong",c:msg.c,h:Date.now()}); return; }
   if(msg.t==="join"){
     const name=String(msg.name||"").trim().slice(0,20)||"Player";
     let m=S.managers.find(x=>x.name.toLowerCase()===name.toLowerCase());
     if(m&&m.cid===msg.cid&&m.connected){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"you",id:m.id}); return; }
     if(!m){
-      if(S.phase!=="lobby"){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"spectator"}); return; }
+      if(S.phase!=="lobby"||S.window){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"spectator"}); return; }
       if(S.managers.length>=10){ pub(topicRoot(NET.code)+"/c/"+msg.cid,{t:"err",msg:"Room is full (10 managers max)"}); return; }
       m=makeManager(Math.max(0,...S.managers.map(x=>x.id))+1,name);
       S.managers.push(m);
@@ -493,8 +634,10 @@ function hostOnMessage(msg){
     return;
   }
   if(msg.t==="bid"){
+    // Messages arrive one at a time, so two bids at once are judged in arrival order.
+    // An old client sends no amount and gets the minimum raise.
     const m=S.managers.find(x=>x.cid===msg.cid);
-    if(m)placeBid(m.id);
+    if(m)placeBid(m.id,msg.amount,msg.ref);
     return;
   }
 }
@@ -503,28 +646,45 @@ function sync(){
   if(NET.mode==="host"||NET.mode==="local"){
     try{ localStorage.setItem(LS_STATE,JSON.stringify({net:{mode:NET.mode,code:NET.code,myName:NET.myName},state:packState()})); }catch(e){}
   }
-  if(NET.mode==="host") pub(topicRoot(NET.code)+"/s",{t:"state",state:packState()},true);
+  if(NET.mode==="host") pub(topicRoot(NET.code)+"/s",{t:"state",state:packState(),now:Date.now()},true);
   render();
 }
+/* Clock sync, NTP style. Each client pings the host every 5s; the host answers with its clock.
+   offset = hostTime - (sent + roundTrip/2), and the sample with the shortest round trip wins,
+   so every screen counts down to the host's deadline. */
+const skew={best:Infinity,offset:0,at:0};
+function skewPong(sent,hostNow){
+  const now=Date.now(), rtt=now-sent;
+  if(rtt<0||rtt>10000)return;
+  if(rtt<=skew.best||now-skew.at>60000){ skew.best=rtt; skew.offset=hostNow-(sent+rtt/2); skew.at=now; }
+}
+const nowAdj = () => NET.mode==="client" ? Date.now()+skew.offset : Date.now();
+setInterval(()=>{ if(NET.mode==="client"&&NET.client&&NET.code) pub(topicRoot(NET.code)+"/h",{t:"ping",cid:myCid,c:Date.now()}); },5000);
 let roomWait=null;
 function joinRoom(code,name){
   NET.mode="client"; NET.code=code.toUpperCase(); NET.myName=name;
   const T=topicRoot(NET.code);
   netConnect(0,{topic:T+"/h",payload:JSON.stringify({t:"leave",cid:myCid}),qos:0,retain:false},client=>{
     NET.status="live";
-    client.subscribe([T+"/s",T+"/c/"+myCid,T+"/toast"]);
+    client.subscribe([T+"/s",T+"/c/"+myCid,T+"/toast",T+"/e"]);
+    pub(T+"/h",{t:"ping",cid:myCid,c:Date.now()});
     client.on("message",(topic,buf)=>{
       let msg; try{ msg=JSON.parse(buf.toString()); }catch(e){ return; }
+      if(topic===T+"/c/"+myCid&&msg.t==="pong"){ skewPong(msg.c,msg.h); return; }
+      if(topic===T+"/e"&&msg.t==="sale"){ playSale(msg.sale,CS); return; }
       if(topic===T+"/s"&&msg.t==="state"){
         const hadState=!!CS; CS=msg.state;
-        if(!hadState){ clearTimeout(roomWait); pub(T+"/h",{t:"join",name:NET.myName,cid:myCid});
+        if(!hadState){ clearTimeout(roomWait); NET.joinAt=Date.now(); pub(T+"/h",{t:"join",name:NET.myName,cid:myCid});
           localStorage.setItem(LS_CLIENT,JSON.stringify({code:NET.code,name:NET.myName})); }
+        else if(!NET.myId&&!NET.spectator&&Date.now()-(NET.joinAt||0)>3000){ // host was away when we joined: ask again
+          NET.joinAt=Date.now(); pub(T+"/h",{t:"join",name:NET.myName,cid:myCid}); }
         render(); return;
       }
       if(topic===T+"/c/"+myCid){
         if(msg.t==="you"){ NET.myId=msg.id; NET.spectator=false; }
         if(msg.t==="spectator"){ NET.spectator=true; toast("Auction already started: you're spectating"); }
         if(msg.t==="err"){ NET.status=msg.msg; }
+        if(msg.t==="bidErr"){ UI.bidErr=msg.msg; }
         if(msg.t==="toast"){ toast(msg.msg); }
         render(); return;
       }
@@ -541,6 +701,7 @@ function hostToast(msg){ // toast locally + push to clients
 
 /* ================= GAME ACTIONS (host/local only) ================= */
 function buildQueue(){
+  if(S.window){ S.queue=[...S.window.order]; S.qIndex=0; return; }
   const set=S.settings;
   let pool=S.players.map(p=>p.id);
   const price=(pid)=>byId(S,pid).basePrice;
@@ -572,21 +733,43 @@ function startCurrent(){
   }
   if(S.qIndex>=S.queue.length){ S.current=null; return; }
   const p=byId(S,S.queue[S.qIndex]);
-  S.current={playerId:p.id, bid:p.basePrice, bidderId:null,
-             deadline:S.settings.timerOn?Date.now()+S.settings.timerSecs*1000:null};
+  // The clock always runs now: it is the hammer.
+  S.paused=false;
+  S.current={playerId:p.id, bid:p.basePrice, bidderId:null, deadline:Date.now()+S.settings.timerSecs*1000};
 }
 function everyoneFull(){ return S.managers.every(m=>m.squad.length>=S.settings.squadSize); }
-function placeBid(mid){
+// amount: typed dollars, or undefined for the minimum raise. seenRef: the bid the bidder was looking at.
+function placeBid(mid,amount,seenRef){
   if(!S||S.phase!=="auction"||!S.current)return;
   const m=S.managers.find(x=>x.id===mid); if(!m)return;
-  if(S.current.bidderId===mid)return; // already highest
-  const p=byId(S,S.current.playerId);
-  const price=nextBid(S);
-  const block=bidBlockReason(S,m,p,price);
-  if(block){ if(NET.mode==="host"&&m.id!==NET.myId)sendToManager(m,{t:"toast",msg:"Bid blocked: "+block}); else toast("Bid blocked: "+block); return; }
+  const remote=NET.mode==="host"&&m.id!==NET.myId;
+  const price=amount==null?nextBid(S):q25(Number(amount));
+  const err=bidError(S,m,price,seenRef==null?null:String(seenRef));
+  if(err){ if(remote)sendToManager(m,{t:"bidErr",msg:err}); else { UI.bidErr=err; render(); } return; }
+  if(remote)sendToManager(m,{t:"bidErr",msg:""}); else UI.bidErr="";
   S.current.bid=price; S.current.bidderId=mid;
-  if(S.settings.timerOn) S.current.deadline=Date.now()+S.settings.timerSecs*1000;
+  S.current.deadline=Date.now()+S.settings.timerSecs*1000; // every bid resets the clock
   sync();
+}
+function togglePause(){
+  const cur=S&&S.current; if(!cur)return;
+  if(S.paused){
+    S.paused=false; cur.deadline=Date.now()+(cur.pausedLeft||S.settings.timerSecs*1000); delete cur.pausedLeft;
+    hostToast("Play resumes");
+  } else {
+    S.paused=true; cur.pausedLeft=Math.max(1500,(cur.deadline||Date.now())-Date.now()); cur.deadline=null;
+    hostToast("The host has paused play");
+  }
+  sync();
+}
+// Every sale or pass gets a number. Each screen plays the gavel when it sees a new number in the synced state.
+function recordSale(kind,p,m,price){
+  S.saleSeq=(S.saleSeq||0)+1;
+  // at: a strike time a moment ahead, on the host's clock, so every screen (host included) hits together.
+  S.lastSale={seq:S.saleSeq,kind,playerId:p.id,managerId:m?m.id:null,price:price||0,at:Date.now()+(NET.mode==="host"?1000:0),
+    line:p.name+" to "+(m?m.name:"")+" for "+money(price||0),name:p.name};
+  // A tiny event on its own topic reaches clients well before the full state does.
+  if(NET.mode==="host") pub(topicRoot(NET.code)+"/e",{t:"sale",sale:S.lastSale});
 }
 function sellCurrent(){
   const cur=S.current; if(!cur)return;
@@ -596,7 +779,7 @@ function sellCurrent(){
   m.squad.push(p.id); m.spent=Math.round((m.spent+cur.bid)*100)/100;
   S.sold.push({playerId:p.id, managerId:m.id, price:cur.bid, round:S.round});
   S.unsold=S.unsold.filter(x=>x!==p.id);
-  hostToast("SOLD! "+p.name+" → "+m.name+" for "+money(cur.bid));
+  recordSale("sold",p,m,cur.bid);
   S.qIndex++;
   if(everyoneFull()){ finishAuction(); return; }
   startCurrent(); sync();
@@ -605,7 +788,7 @@ function passCurrent(){
   const cur=S.current; if(!cur)return;
   const p=byId(S,cur.playerId);
   if(!S.unsold.includes(p.id))S.unsold.push(p.id);
-  hostToast(p.name+" goes UNSOLD");
+  recordSale("unsold",p,null,0);
   S.qIndex++; startCurrent(); sync();
 }
 function undoLast(){
@@ -645,20 +828,25 @@ function restartAll(){
 setInterval(()=>{
   const state=st();
   if(!state||state.phase!=="auction"||!state.current)return;
-  if((NET.mode==="host"||NET.mode==="local") && state.current.deadline && Date.now()>state.current.deadline){
+  if((NET.mode==="host"||NET.mode==="local") && !state.paused && state.current.deadline && Date.now()>state.current.deadline){
     state.current.bidderId!=null ? sellCurrent() : passCurrent();
     return;
   }
-  if(state.current.deadline){
-    const el=document.getElementById("timerbar"), tl=document.getElementById("timerleft");
-    if(el){
-      const total=state.settings.timerSecs*1000;
-      const left=Math.max(0,state.current.deadline-Date.now());
-      el.style.width=(left/total*100)+"%";
-      if(tl)tl.textContent=Math.ceil(left/1000)+"s";
-    }
+  paintClock();
+},100);
+function paintClock(){
+  const state=st(); if(!state||!state.current)return;
+  const el=document.getElementById("timerbar"), tl=document.getElementById("timerleft"), go=document.getElementById("going");
+  if(!el)return;
+  const total=state.settings.timerSecs*1000;
+  const left=state.paused?(state.current.pausedLeft||total):Math.max(0,(state.current.deadline||0)-nowAdj());
+  el.style.width=Math.min(100,left/total*100)+"%";
+  if(tl)tl.textContent=Math.ceil(left/1000)+"s";
+  if(go){
+    const word=state.paused?"Paused":left<=1000?"Going twice":left<=3000?"Going once":"";
+    if(go.textContent!==word)go.textContent=word;
   }
-},250);
+}
 
 /* ================= EXPORT ================= */
 function download(name,text,type){
@@ -690,20 +878,30 @@ function exportJSON(){
 
 /* ================= TOASTS AND THE SOLD STAMP ================= */
 const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let stampTimer=null;
 function toast(msg){
-  const sold=/^SOLD! (.+) → (.+) for (.+)$/.exec(msg);
-  if(sold){
-    const el=document.getElementById("stamp");
-    document.getElementById("stampline").textContent=sold[1]+" to "+sold[2]+" for "+sold[3];
-    el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
-    clearTimeout(stampTimer); stampTimer=setTimeout(()=>el.classList.remove("on"),1500);
-    return;
-  }
   const box=document.getElementById("toasts");
   const el=document.createElement("div"); el.className="toast"; el.textContent=msg;
   box.appendChild(el);
   setTimeout(()=>el.remove(),3200);
+}
+/* Sale events. The first state a screen sees only sets the baseline, so joining mid-auction
+   or reloading never replays an old hammer. */
+let seenSale=null;
+function checkSale(state){
+  if(!state)return;
+  const ls=state.lastSale, seq=ls?ls.seq:0;
+  if(seenSale===null||seq<seenSale){ seenSale=seq; return; }
+  playSale(ls,state);
+}
+function playSale(ls,state){
+  if(!ls||seenSale===null||ls.seq<=seenSale)return;
+  seenSale=ls.seq;
+  const wait=ls.at?ls.at-nowAdj():0;
+  if(wait<-4000)return; // arrived far too late to be worth a hammer
+  let line=ls.line, name=ls.name;
+  if(!line&&state){ const p=byId(state,ls.playerId), m=state.managers.find(x=>x.id===ls.managerId);
+    name=p?p.name:"?"; line=name+" to "+(m?m.name:"?")+" for "+money(ls.price); }
+  setTimeout(()=>{ if(ls.kind==="sold") GAVEL.strike(line); else toast(name+" is passed in, unsold"); },Math.max(0,Math.min(wait,1500)));
 }
 
 /* ================= RENDER ================= */
@@ -714,8 +912,12 @@ let lastBidShown=null;
 function render(){
   const app=document.getElementById("app");
   const state=st();
+  const lotKey=state&&state.current?state.current.playerId:null;
+  if(lotKey!==UI.errLot){ UI.errLot=lotKey; UI.bidErr=""; }
   let html="";
-  if(NET.mode==="client"){
+  if(screen==="league"){
+    html=viewLeague();
+  } else if(NET.mode==="client"){
     html = !CS ? viewClientConnecting() :
       CS.phase==="lobby" ? viewLobby(CS,false) :
       CS.phase==="auction" ? viewAuction(CS,false) : viewResults(CS,false);
@@ -725,10 +927,20 @@ function render(){
   } else {
     html = screen==="join"?viewJoin() : screen==="setup"?viewSetup() : viewHome();
   }
-  if(UI.pool && state) html+=viewPool(state);
+  if(UI.pool && state && screen!=="league") html+=viewPool(state);
+  // Keep half-typed inputs (and focus) across re-renders. data-keep ties a value to its context,
+  // so a typed bid is dropped when the next player comes up.
+  const keep={}; document.querySelectorAll("[data-keep]").forEach(e=>{ keep[e.id]=[e.dataset.keep,e.value]; });
+  const act=document.activeElement, actId=act&&act.id&&act!==document.body?act.id:null;  // keep keyboard focus in place
   app.innerHTML=html;
+  for(const id in keep){ const e=document.getElementById(id); if(e&&e.dataset.keep===keep[id][0]) e.value=keep[id][1]; }
+  if(actId){ const e=document.getElementById(actId); if(e&&e!==document.activeElement){ e.focus({preventScroll:true}); if(keep[actId]) try{ e.setSelectionRange(e.value.length,e.value.length); }catch(x){} } }
   if(!state && screen==="home") BALL.mount();
   if(!state && screen==="setup" && setupMode==="local") render_localnames(document.getElementById("nmgrs").value);
+  if(state && state.phase==="auction") GAVEL.preload();
+  checkSale(state);
+  maybeAutoSave(state);
+  paintClock();
   tickUrgency();
 }
 
@@ -759,6 +971,7 @@ function viewHome(){
         <button class="btn ${saved?"":"btn-primary"} btn-lg" onclick="goSetup('host')" ${online?"":"disabled"}>Host a room</button>
         <button class="btn btn-lg" onclick="goJoin()" ${online?"":"disabled"}>Join with a code</button>
         <button class="btn btn-lg" onclick="goSetup('local')">Pass and play</button>
+        <button class="btn btn-lg" onclick="screen='league';LG.code=null;render()">Your league</button>
       </div>
       ${online?"":`<p class="notice mt-s">You look to be offline, so online rooms are off. Pass and play still works on this device.</p>`}
       <p class="facts">${PLAYERS.length} players from all 8 clubs. BBL|16 squads (2026-27) as of ${DATA_AS_OF}. The host can fix names and prices before the first ball.</p>
@@ -893,9 +1106,8 @@ function viewLobby(state,canEdit){
             <option value="random" ${set.order==="random"?"selected":""}>Shuffled</option>
             <option value="price" ${set.order==="price"?"selected":""}>Dearest first</option>
           </select></label>
-        <label class="field"><span>Bid clock, seconds</span>
-          <input type="number" min="5" max="120" value="${set.timerSecs}" onchange="setRule('timerSecs',Math.max(5,parseInt(this.value)||15))"></label>
-        <label class="check"><input type="checkbox" ${set.timerOn?"checked":""} onchange="setRule('timerOn',this.checked)"> Run the bid clock</label>
+        <label class="field"><span>No-bid clock, seconds</span>
+          <input type="number" min="5" max="60" value="${set.timerSecs}" onchange="setRule('timerSecs',Math.max(5,Math.min(60,parseInt(this.value)||10)))"></label>
         <label class="check"><input type="checkbox" ${set.marqueeFirst?"checked":""} onchange="setRule('marqueeFirst',this.checked)"> Marquee players first (base ${money(14)} and up)</label>
       </div>
     </section>`:"";
@@ -916,6 +1128,8 @@ function viewLobby(state,canEdit){
     ${NET.mode==="client"?`<p class="muted mt-s">Waiting on the host to start play.</p>`:""}
   </section>
   ${rules}
+  ${canEdit&&!state.window?lobbySaveFields(state):""}
+  ${state.window?`<p class="notice mt">Trade window auction for league ${esc(state.window.code)}. Managers join with the room code and their league name. ${state.window.order.length} players to go: released players first, then the unsold, dearest first.</p>`:""}
   ${canEdit?`
     <div class="row between mt">
       <button class="btn" onclick="UI.editPlayers=true;UI.pool=true;render()">Edit players and prices</button>
@@ -957,16 +1171,27 @@ function viewAuction(state,canControl){
   const bump=lastBidShown!==null&&lastBidShown!==bidKey&&cur.bidderId!=null;
   lastBidShown=bidKey;
 
+  const paused=!!state.paused;
   let bidControls="";
   if(NET.mode==="local"){
+    if(!state.managers.some(m=>m.id===UI.localBidder)) UI.localBidder=state.managers[0].id;
+    const sel=state.managers.find(m=>m.id===UI.localBidder);
     bidControls=`<div class="bidgrid">`+state.managers.map(m=>{
       const leading=cur.bidderId===m.id;
       const block=leading?null:bidBlockReason(state,m,p,next);
-      return `<button class="btn ${leading?"":"btn-primary"} bid ${leading?"leading":""}" ${leading||block?"disabled":""} onclick="placeBid(${m.id})">
+      return `<button class="btn ${leading?"":"btn-primary"} bid ${leading?"leading":""}" ${leading||block||paused?"disabled":""} onclick="placeBid(${m.id})">
         <span class="who">${esc(m.name)}</span>
         <span>${leading?"Leading":"Bid "+money(next)}</span>
         <small>${block?esc(block):money(set.budget-m.spent)+" left, "+m.squad.length+" of "+set.squadSize}</small>
-      </button>`;}).join("")+`</div>`;
+      </button>`;}).join("")+`</div>
+      <form class="typebid" onsubmit="submitTyped(event)">
+        <label class="field"><span>Who</span>
+          <select id="localwho" onchange="UI.localBidder=parseInt(this.value);UI.bidErr='';render()">
+            ${state.managers.map(m=>`<option value="${m.id}" ${m.id===sel.id?"selected":""}>${esc(m.name)}</option>`).join("")}
+          </select></label>
+        ${typedField(state,sel,p,next,paused)}
+      </form>
+      ${bidHelp(state,sel,p)}`;
   } else {
     const me=state.managers.find(m=>m.id===NET.myId);
     if(NET.spectator||!me){
@@ -974,19 +1199,25 @@ function viewAuction(state,canControl){
     } else {
       const leading=cur.bidderId===me.id;
       const block=leading?null:bidBlockReason(state,me,p,next);
-      bidControls=`<button class="btn ${leading?"":"btn-primary"} bid bid-solo ${leading?"leading":""}" ${leading||block?"disabled":""}
-          onclick="${NET.mode==="host"?`placeBid(${me.id})`:"clientBid()"}">
+      const mx=maxBid(state,me,p);
+      const quick=[...new Set([next,q25(cur.bid+1),q25(cur.bid+2)])].filter(a=>a>next&&a<=mx.max).slice(0,2);
+      bidControls=`<div class="bidrow">
+        <button class="btn ${leading?"":"btn-primary"} bid bid-solo ${leading?"leading":""}" ${leading||block||paused?"disabled":""}
+          onclick="sendBid(${next})">
           <span>${leading?"You lead":"Bid "+money(next)}</span>
           <small>${block?esc(block):money(set.budget-me.spent)+" left in your purse"}</small>
-        </button>`;
+        </button>
+        ${quick.length&&!leading&&!paused?`<div class="quick">${quick.map(a=>`<button class="btn" onclick="sendBid(${a})">${money(a)}</button>`).join("")}</div>`:""}
+      </div>
+      <form class="typebid" onsubmit="submitTyped(event)">${typedField(state,me,p,next,paused||leading)}</form>
+      ${bidHelp(state,me,p)}`;
     }
   }
   const hostControls=canControl?`
     <div class="hostbar">
-      <button class="btn btn-primary" onclick="sellCurrent()">${cur.bidderId!=null?"Hammer down":"No bids, pass"}</button>
-      <button class="btn" onclick="passCurrent()">Pass unsold</button>
-      <button class="btn" ${state.sold.length?"":"disabled"} onclick="undoLast()">Undo last sale</button>
-      <button class="btn btn-danger" onclick="finishAuction()">End the auction</button>
+      <button class="btn btn-sm" onclick="togglePause()">${paused?"Resume":"Pause"}</button>
+      <button class="btn btn-sm" ${state.sold.length?"":"disabled"} onclick="undoLast()">Undo last sale</button>
+      <button class="btn btn-sm btn-quiet" onclick="if(confirm('End the auction now? Everyone left goes unsold.'))finishAuction()">End the auction</button>
     </div>`:"";
 
   return `${header(state,`
@@ -1012,14 +1243,46 @@ function viewAuction(state,canControl){
         <div class="leader ${leader?"":"none"}">${leader?esc(leader.name):"No bids yet"}</div>
       </div>
     </div>
-    ${cur.deadline?`<div class="clock"><span class="secs" id="timerleft"></span><div class="track"><div class="bar" id="timerbar" style="width:100%"></div></div></div>`:""}
+    <div class="clock"><span class="secs" id="timerleft"></span><div class="track"><div class="bar" id="timerbar" style="width:100%"></div></div><span class="going" id="going" aria-live="assertive"></span></div>
     <div class="lot-actions">${bidControls}${hostControls}</div>
   </section>
   <h3 class="mt">The table</h3>
   <div class="board mt-s">${state.managers.map(m=>mgrCard(state,m,cur.bidderId===m.id)).join("")}</div>
   </main>`;
 }
-function clientBid(){ pub(topicRoot(NET.code)+"/h",{t:"bid",cid:myCid}); }
+function typedField(state,m,p,next,off){
+  return `<label class="field grow"><span>Your bid</span>
+      <span class="money-in"><b aria-hidden="true">$</b><input id="bidamt" data-keep="${state.current.playerId}" type="text" inputmode="decimal" enterkeyhint="go"
+        autocomplete="off" placeholder="${fmt(next)}" aria-describedby="bidhelp" ${off?"disabled":""}></span></label>
+      <button class="btn btn-primary" type="submit" ${off?"disabled":""}>Bid</button>`;
+}
+function bidHelp(state,m,p){
+  const mx=maxBid(state,m,p);
+  return `<p class="bidhelp" id="bidhelp">${mx.max>0?`${esc(m.name)} can bid up to <b>${money(mx.max)}</b>. Steps of ${money(state.settings.increment)}, any amount in 0.25s.`:`${esc(m.name)} can't bid on this one: ${esc(mx.reason)}.`}</p>
+    ${UI.bidErr?`<p class="biderr" role="alert">${esc(UI.bidErr)}</p>`:""}`;
+}
+function submitTyped(ev){
+  ev.preventDefault();
+  const el=document.getElementById("bidamt"); if(!el)return;
+  const raw=el.value.replace(/[$,\s]/g,"");
+  if(!raw){ UI.bidErr="Type an amount first."; render(); return; }
+  sendBid(parseFloat(raw), NET.mode==="local"?UI.localBidder:NET.myId);
+}
+// One path for every bid: check locally for an instant answer, then the host checks again.
+function sendBid(amount,mid){
+  const state=st(); if(!state||!state.current)return;
+  if(mid==null)mid=NET.myId;
+  const m=state.managers.find(x=>x.id===mid); if(!m)return;
+  const a=q25(amount), ref=bidRef(state);
+  const err=bidError(state,m,a,null);
+  if(err){ UI.bidErr=err; render(); return; }
+  UI.bidErr="";
+  const el=document.getElementById("bidamt"); if(el)el.value="";
+  if(NET.mode==="client") pub(topicRoot(NET.code)+"/h",{t:"bid",cid:myCid,amount:a,ref});
+  else placeBid(mid,a,ref);
+  render();
+}
+function clientBid(){ sendBid(nextBid(CS)); }
 function mgrCard(state,m,winning){
   const set=state.settings;
   const c=roleCounts(state,m);
@@ -1091,6 +1354,7 @@ function viewResults(state,canControl){
       <button class="btn btn-danger" onclick="restartAll()">Start a new auction</button>`:""}
     </div>
   </section>
+  ${state.window?windowSavePanel(state,canControl):savePanel(state,canControl)}
   ${squads}
   ${state.unsold.length?`<section class="panel mt"><h3>Unsold, ${state.unsold.length}</h3><div class="chips">${unsoldRows}</div></section>`:""}
   </main>`;
@@ -1167,10 +1431,721 @@ function addPlayer(){
 function tickUrgency(){
   const state=st(), lot=document.getElementById("lot");
   if(!lot||!state||!state.current||!state.current.deadline)return;
-  const left=state.current.deadline-Date.now();
-  if(left<=5000) lot.setAttribute("data-urgent",""); else lot.removeAttribute("data-urgent");
+  const left=state.current.deadline-nowAdj();
+  if(left<=3000) lot.setAttribute("data-urgent",""); else lot.removeAttribute("data-urgent");
 }
 setInterval(tickUrgency,250);
+
+/* ================= SAVED LEAGUES (Supabase) =================
+   Everything after the auction: saved squads, sign in with a PIN, My Team and lineups, live points,
+   the leaderboard and the trade window. The key below is Supabase's public (publishable) key: it can
+   only read league data and call the PIN-checked functions in supabase/schema.sql. */
+const SB_URL="https://xbwyfpjzkmsdqffqaxwx.supabase.co", SB_KEY="sb_publishable_uHYkmcvVRNqi5Q9X8peTGQ_njc_dPJr";
+const LS_LEAGUE="bidbash_league_v1";     // {code, mid, pin}: who you are on this device
+const LS_COMMISH="bidbash_commish_v1";   // {CODE: {pin, name}}: commissioner PIN per league, this device only
+const XI_SHAPE={WK:1,BAT:3,BOWL:3,AR:1};
+const lsGet=(k,d)=>{ try{ return JSON.parse(localStorage.getItem(k))||d; }catch(e){ return d; } };
+const lsSet=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+
+async function sbErr(r){ try{ const j=await r.json(); return j.message||j.hint||("The server said "+r.status); }catch(e){ return "The server said "+r.status; } }
+async function sbGet(path){
+  const out=[];
+  for(let off=0;;off+=1000){
+    const r=await fetch(SB_URL+"/rest/v1/"+path+(path.includes("?")?"&":"?")+"limit=1000&offset="+off,{headers:{apikey:SB_KEY}});
+    if(!r.ok) throw new Error(await sbErr(r));
+    const rows=await r.json(); out.push(...rows);
+    if(rows.length<1000) return out;
+  }
+}
+async function sbRpc(fn,body){
+  let r;
+  try{ r=await fetch(SB_URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(body||{})}); }
+  catch(e){ throw new Error("Couldn't reach the league server. Check your connection."); }
+  if(!r.ok) throw new Error(await sbErr(r));
+  const j=r.status===204?null:await r.json();
+  if(j&&typeof j==="object"&&j.error) throw new Error(j.error);
+  return j&&typeof j==="object"&&"result" in j ? j.result : j;
+}
+const sydTime = t => new Date(t).toLocaleString("en-AU",{timeZone:"Australia/Sydney",weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+const pts1 = n => (Math.round(n*10)/10).toString();
+
+/* ---------- saving an auction ---------- */
+function leagueCodeFor(state){
+  if(NET.code) return NET.code;
+  if(!state.leagueCode) state.leagueCode=genCode();
+  return state.leagueCode;
+}
+function commishFor(code){ return lsGet(LS_COMMISH,{})[code]||null; }
+function setCommish(code,pin,name){ const all=lsGet(LS_COMMISH,{}); all[code]={pin,name:name||(all[code]&&all[code].name)||""}; lsSet(LS_COMMISH,all); }
+function readSaveForm(){
+  const code=leagueCodeFor(S);
+  const n=document.getElementById("lgname"), p=document.getElementById("lgpin");
+  const prev=commishFor(code)||{};
+  const name=((n&&n.value)||prev.name||"").trim(), pin=((p&&p.value)||prev.pin||"").trim();
+  if(n||p) setCommish(code,pin,name);
+  return {code,name,pin};
+}
+async function saveLeague(auto){
+  if(!S||(NET.mode!=="host"&&NET.mode!=="local"))return;
+  const {code,name,pin}=readSaveForm();
+  if(!name||!/^\d{6}$/.test(pin)){ UI.saveMsg=auto?"":"Add a league name and a 6 digit commissioner PIN, then save."; UI.saveBad=!auto; render(); return; }
+  UI.saveMsg="Saving the league..."; UI.saveBad=false; render();
+  try{
+    const managers=S.managers.map(m=>({id:m.id,name:m.name,spent:m.spent}));
+    const sold=S.sold.map(x=>({playerId:x.playerId,managerId:x.managerId,price:x.price}));
+    await sbRpc("save_league",{p:{code,name,pin,settings:S.settings,players:S.players,managers,sold}});
+    S.leagueSaved=code; sync();
+    UI.saveMsg="Saved as league "+code+". Managers open it with that code to see their teams."; UI.saveBad=false;
+    if(NET.mode==="host") pub(topicRoot(NET.code)+"/toast",{t:"toast",msg:"Squads saved. Open league "+code+" from the home screen."});
+  }catch(e){ UI.saveMsg="Not saved: "+e.message; UI.saveBad=true; }
+  render();
+}
+function savePanel(state,canControl){
+  const code=state.leagueCode||NET.code;
+  if(!canControl){
+    return `<section class="panel mt stack"><h3>Your team after tonight</h3>
+      <p class="muted">The host saves these squads as league <b>${esc(code||"")}</b>. Open it any time to see your team, set your XI and follow the points.</p>
+      <div><a class="btn btn-primary" href="#league/${esc(code||"")}" onclick="openLeague('${esc(code||"")}');return false">Open league ${esc(code||"")}</a></div></section>`;
+  }
+  const c=commishFor(leagueCodeFor(state))||{};
+  const saved=state.leagueSaved;
+  return `<section class="panel mt stack">
+    <div class="row between"><h3>${saved?"Saved as league "+esc(saved):"Save as a league"}</h3>
+      ${saved?`<a class="btn" href="#league/${esc(saved)}" onclick="openLeague('${esc(saved)}');return false">Open the league</a>`:""}</div>
+    <p class="muted small">Saving keeps every squad so managers can come back for their team, lineups and points. Your commissioner PIN stays on this device and in the league's locked records. It is never sent through the auction room.</p>
+    <div class="rules">
+      <label class="field"><span>League name</span><input id="lgname" data-keep="save" maxlength="40" value="${esc(c.name||"")}" placeholder="Saturday Night Bash"></label>
+      <label class="field"><span>Commissioner PIN, 6 digits</span><input id="lgpin" data-keep="save" type="password" inputmode="numeric" maxlength="6" autocomplete="off" value="${esc(c.pin||"")}"></label>
+    </div>
+    <div class="row"><button class="btn btn-primary" onclick="saveLeague(false)">${saved?"Save again":"Save the league"}</button>
+      <span class="small ${UI.saveBad?"bad-text":"muted"}" role="status">${esc(UI.saveMsg||"")}</span></div>
+  </section>`;
+}
+// Auto-save once when a hosted or pass-and-play auction finishes, if the host already set name and PIN.
+function maybeAutoSave(state){
+  if(!state||state.phase!=="results"||state.leagueSaved||UI.autoSaving||UI.autoTriedFor===state)return;
+  if(NET.mode!=="host"&&NET.mode!=="local")return;
+  UI.autoTriedFor=state; UI.saveMsg=""; // one automatic try per auction; the results screen has a button for the rest
+  if(state.window){ saveWindowBuys(); return; }
+  const c=commishFor(leagueCodeFor(state));
+  if(!c||!c.name||!/^\d{6}$/.test(c.pin||""))return;
+  UI.autoSaving=true; saveLeague(true).finally(()=>{UI.autoSaving=false;});
+}
+function lobbySaveFields(state){
+  const code=leagueCodeFor(state); const c=commishFor(code)||{};
+  return `<section class="panel mt">
+    <h3>Save to a league</h3>
+    <p class="small muted mt-s">Fill these in now and the squads save on their own when the hammer falls on the last lot. League code: <b>${esc(code)}</b>.</p>
+    <div class="rules mt-s">
+      <label class="field"><span>League name</span><input id="lgname" data-keep="save" maxlength="40" value="${esc(c.name||"")}" placeholder="Saturday Night Bash" onchange="readSaveForm()"></label>
+      <label class="field"><span>Commissioner PIN, 6 digits</span><input id="lgpin" data-keep="save" type="password" inputmode="numeric" maxlength="6" autocomplete="off" value="${esc(c.pin||"")}" onchange="readSaveForm()"></label>
+    </div>
+  </section>`;
+}
+
+/* ---------- loading a league ---------- */
+const LG={code:null,data:null,err:"",loading:false,tab:"table",sel:null,draft:null,view:null,msg:"",bad:false,modal:null,timer:null,at:0};
+function me(){ const m=lsGet(LS_LEAGUE,{}); return m.code===LG.code&&m.mid?m:null; }
+function openLeague(code){
+  code=String(code||"").trim().toUpperCase();
+  if(!/^[A-Z0-9]{4,8}$/.test(code)){ UI.lgErr="That doesn't look like a league code."; render(); return; }
+  UI.lgErr="";
+  if(location.hash!=="#league/"+code) history.replaceState(null,"","#league/"+code);
+  screen="league"; LG.code=code; LG.data=null; LG.err=""; LG.draft=null; LG.sel=null; LG.view=null; LG.msg="";
+  if(!me()) LG.tab="table";
+  loadLeague();
+  clearInterval(LG.timer);
+  LG.timer=setInterval(()=>{ if(screen==="league"&&!document.hidden) loadLeague(true); },60000);
+}
+function leaveLeague(){ clearInterval(LG.timer); screen="home"; LG.code=null; history.replaceState(null,"",location.pathname); render(); }
+async function loadLeague(quiet){
+  const code=LG.code; if(!code)return;
+  if(!quiet){ LG.loading=true; render(); }
+  try{
+    await sbRpc("league_tick",{p_code:code}).catch(()=>{});
+    const q="league_code=eq."+code;
+    const [lg,mgrs,own,lus,fx,pts,ovr,wins,trades,log,meta]=await Promise.all([
+      sbGet("leagues?code=eq."+code+"&select=code,name,settings,players,rules,auction_date"),
+      sbGet("managers?"+q+"&select=id,name,purse_left,claimed&order=id"),
+      sbGet("ownership?"+q+"&select=*&order=id"),
+      sbGet("lineups?"+q+"&select=*"),
+      sbGet("fixtures?season=eq.BBL16&select=*&order=starts_at"),
+      sbGet("player_points?select=fixture_id,player_id,played,points,breakdown,source,updated_at"),
+      sbGet("point_overrides?"+q+"&select=*"),
+      sbGet("windows?"+q+"&select=*,votes(manager_id,yes,at)&order=id.desc"),
+      sbGet("trades?"+q+"&select=*&order=id.desc"),
+      sbGet("tx_log?"+q+"&select=*&order=id.desc&limit=300"),
+      sbGet("meta?key=eq.points_updated&select=value")
+    ]);
+    if(!lg.length){ LG.err="No league called "+code+" yet. Check the code with your commissioner."; LG.data=null; }
+    else {
+      const d={league:lg[0],managers:mgrs,ownership:own,lineups:lus,fixtures:fx,points:{},overrides:{},windows:wins,trades,log,
+               updated:meta[0]&&meta[0].value&&meta[0].value.at};
+      pts.forEach(p=>{ d.points[p.fixture_id+":"+p.player_id]=p; });
+      ovr.forEach(o=>{ d.overrides[o.fixture_id+":"+o.player_id]=o; });
+      d.byId={}; d.league.players.forEach(p=>{ d.byId[p.id]=p; });
+      LG.data=d; LG.err="";
+    }
+  }catch(e){ LG.err=e.message; }
+  LG.loading=false; LG.at=Date.now();
+  if(LG.data&&LG.data.windows.some(w=>w.status==="vote")){ clearTimeout(LG.voteTimer); LG.voteTimer=setTimeout(()=>loadLeague(true),15000); }
+  render();
+}
+
+/* ---------- the maths: rounds, lineups, emergencies, totals ---------- */
+const lgP=(D,pid)=>D.byId[pid]||{id:pid,name:"Player "+pid,team:"",role:"BAT",basePrice:0};
+function openRoundOf(D){
+  const first={}; D.fixtures.forEach(f=>{ const t=Date.parse(f.starts_at); first[f.round]=Math.min(first[f.round]==null?Infinity:first[f.round],t); });
+  const fut=Object.keys(first).filter(r=>first[r]>Date.now()).map(Number);
+  if(fut.length) return Math.min(...fut);
+  const rs=Object.keys(first).map(Number); return rs.length?Math.max(...rs)+1:1;
+}
+function lockTime(D,r){ const t=D.fixtures.filter(f=>f.round===r).map(f=>Date.parse(f.starts_at)); return t.length?Math.min(...t):null; }
+function startedRounds(D){ return [...new Set(D.fixtures.filter(f=>Date.parse(f.starts_at)<=Date.now()).map(f=>f.round))].sort((a,b)=>a-b); }
+function squadNow(D,mid){ return D.ownership.filter(o=>o.manager_id===mid&&!o.released&&o.to_round==null).map(o=>o.player_id); }
+function ownedIn(D,mid,r){ return D.ownership.filter(o=>o.manager_id===mid&&o.from_round!=null&&o.from_round<=r&&(o.to_round==null||r<o.to_round)).map(o=>o.player_id); }
+function pricePaid(D,mid,pid){ const o=D.ownership.filter(x=>x.manager_id===mid&&x.player_id===pid).pop(); return o?+o.price:0; }
+// Default XI when a manager never set one: dearest legal shape, rest on the bench by price.
+function autoLineup(D,ids){
+  const by=[...ids].sort((a,b)=>(lgP(D,b).basePrice||0)-(lgP(D,a).basePrice||0));
+  const xi=[];
+  for(const role in XI_SHAPE){ by.filter(p=>lgP(D,p).role===role&&!xi.includes(p)).slice(0,XI_SHAPE[role]).forEach(p=>xi.push(p)); }
+  by.forEach(p=>{ if(xi.length<11&&!xi.includes(p))xi.push(p); });
+  return {xi,bench:by.filter(p=>!xi.includes(p)),auto:true};
+}
+function lineupFor(D,mid,r){
+  const l=D.lineups.filter(x=>x.manager_id===mid&&x.from_round<=r).sort((a,b)=>b.from_round-a.from_round)[0];
+  return l?{xi:l.xi,bench:l.bench,from:l.from_round}:autoLineup(D,r>=1?ownedIn(D,mid,r):squadNow(D,mid));
+}
+function fixtureScore(D,fid,pid){
+  const o=D.overrides[fid+":"+pid]; if(o) return {points:+o.points,played:true,src:"commissioner",breakdown:[["Set by the commissioner"+(o.note?": "+o.note:""),+o.points]]};
+  const p=D.points[fid+":"+pid]; return p?{points:+p.points,played:p.played,src:p.source,breakdown:p.breakdown}:null;
+}
+function playerRound(D,pid,r){
+  const club=lgP(D,pid).team;
+  const fx=D.fixtures.filter(f=>f.round===r&&(f.home===club||f.away===club));
+  let points=0, played=false, live=false;
+  fx.forEach(f=>{ const s=fixtureScore(D,f.id,pid); if(s&&s.played){ played=true; points+=s.points; if(s.src==="live")live=true; } });
+  return {points,played,live,done:fx.every(f=>f.ended||f.final),games:fx.length};
+}
+function teamRound(D,mid,r){
+  const owned=new Set(ownedIn(D,mid,r));
+  const lu=lineupFor(D,mid,r);
+  const bench=lu.bench.filter(p=>owned.has(p)), used=new Set(), lines=[];
+  let total=0;
+  for(const pid of lu.xi){
+    const rp=owned.has(pid)?playerRound(D,pid,r):{points:0,played:false,done:true};
+    if(rp.played){ total+=rp.points; lines.push({pid,points:rp.points,kind:"starter"}); continue; }
+    if(!rp.done){ lines.push({pid,points:0,kind:"waiting"}); continue; }
+    const e=bench.find(b=>!used.has(b)&&playerRound(D,b,r).played);   // emergencies come in, in bench order
+    if(e){ used.add(e); const p=playerRound(D,e,r).points; total+=p; lines.push({pid:e,points:p,kind:"emergency",for:pid}); }
+    else lines.push({pid,points:0,kind:"out"});
+  }
+  return {total,lines,lineup:lu};
+}
+function seasonTable(D){
+  const rounds=startedRounds(D), cur=rounds[rounds.length-1];
+  return D.managers.map(m=>{
+    const per=rounds.map(r=>teamRound(D,m.id,r).total);
+    return {m,season:per.reduce((a,b)=>a+b,0),round:cur!=null?per[per.length-1]:0,per};
+  }).sort((a,b)=>b.season-a.season||b.round-a.round);
+}
+function playerSeason(D,pid){ return startedRounds(D).reduce((a,r)=>a+playerRound(D,pid,r).points,0); }
+
+/* ---------- views ---------- */
+function viewLeagueGate(){
+  const last=lsGet(LS_LEAGUE,{}).code||"";
+  return `${header(null)}
+  <main class="panel panel-narrow stack">
+    <h2>Your league</h2>
+    <p class="muted">Use the league code from your commissioner. It's the same as the auction room code.</p>
+    <form class="stack" onsubmit="event.preventDefault();openLeague(document.getElementById('lgcode').value)">
+      <label class="field"><span>League code</span><input id="lgcode" maxlength="8" autocapitalize="characters" autocomplete="off" value="${esc(last)}" style="text-transform:uppercase;letter-spacing:.3em;font-weight:700"></label>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Open the league</button>
+    </form>
+    <button class="btn btn-quiet btn-block" onclick="screen='home';render()">Back</button>
+    ${UI.lgErr?`<p class="notice bad">${esc(UI.lgErr)}</p>`:""}
+  </main>`;
+}
+function viewLeague(){
+  if(!LG.code) return viewLeagueGate();
+  const D=LG.data;
+  const top=`<header class="topbar">
+    <div class="row"><a class="wordmark" href="#" onclick="leaveLeague();return false">Bid<b>Bash</b></a>
+      ${D?`<span class="lgname">${esc(D.league.name)}</span>`:""}<span class="codechip" aria-label="League code">${esc(LG.code)}</span></div>
+    <div class="row">${whoChip()}</div></header>`;
+  if(!D) return top+`<main>${LG.loading?`<p class="muted">Loading the league...</p>`:`<p class="notice bad">${esc(LG.err||"Couldn't load this league.")}</p>
+    <div class="row mt-s"><button class="btn" onclick="loadLeague()">Try again</button><button class="btn btn-quiet" onclick="leaveLeague()">Home</button></div>`}</main>`;
+  const tabs=[["table","Table"],["team","My team"],["squads","Squads"],["matches","Points"],["trades","Trades"],["log","Log"],["scoring","Scoring"]];
+  const body={table:lgTable,team:lgTeam,squads:lgSquads,matches:lgMatches,trades:lgTrades,log:lgLog,scoring:lgScoring}[LG.tab]||lgTable;
+  return top+`<nav class="tabs" aria-label="League">${tabs.map(([k,l])=>`<button class="tab ${LG.tab===k?"on":""}" aria-current="${LG.tab===k?"page":"false"}" onclick="lgTab('${k}')">${l}</button>`).join("")}</nav>
+  <main>${LG.err?`<p class="notice bad">${esc(LG.err)}</p>`:""}${LG.msg?`<p class="notice ${LG.bad?"bad":""} mt-s" role="status">${esc(LG.msg)}</p>`:""}${body(D)}</main>${LG.modal?LG.modal():""}`;
+}
+function lgTab(k){ LG.tab=k; LG.msg=""; LG.sel=null; if(k!=="team")LG.view=null; render();
+  const t=document.querySelector(".tab.on"); if(t&&t.parentNode) t.parentNode.scrollLeft=t.offsetLeft-t.parentNode.clientWidth/2+t.clientWidth/2; }
+function lgSay(msg,bad){ LG.msg=msg; LG.bad=!!bad; render(); }
+function whoChip(){
+  const m=me(), D=LG.data, c=commishFor(LG.code);
+  const name=m&&D?(D.managers.find(x=>x.id===m.mid)||{}).name:"";
+  return `${c&&c.pin?`<span class="pill">Commissioner</span>`:""}
+    ${m?`<span class="small muted">Signed in as <b>${esc(name||"?")}</b></span><button class="btn btn-sm btn-quiet" onclick="signOut()">Sign out</button>`
+       :`<button class="btn btn-sm" onclick="LG.tab='team';render()">Sign in</button>`}`;
+}
+function signOut(){ localStorage.removeItem(LS_LEAGUE); LG.draft=null; render(); }
+
+function signInPanel(D){
+  const sel=UI.lgMid||"";
+  const m=D.managers.find(x=>String(x.id)===String(sel));
+  return `<section class="panel panel-narrow stack" style="margin-top:0">
+    <h3>Sign in to set your XI</h3>
+    <label class="field"><span>Who are you?</span><select id="lgmid" onchange="UI.lgMid=this.value;render()">
+      <option value="">Pick your name</option>${D.managers.map(x=>`<option value="${x.id}" ${String(x.id)===String(sel)?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+    ${m?`<form class="stack" onsubmit="event.preventDefault();signIn(${m.id},${m.claimed})">
+      <label class="field"><span>${m.claimed?"Your 4 digit PIN":"Choose a 4 digit PIN"}</span>
+        <input id="lgpin4" type="password" inputmode="numeric" maxlength="4" autocomplete="${m.claimed?"current-password":"new-password"}"></label>
+      ${m.claimed?"":`<p class="small muted">First time in. This PIN is how you prove it's you from now on. If someone else already took your seat, ask the commissioner to reset it.</p>`}
+      <button class="btn btn-primary btn-block" type="submit">${m.claimed?"Sign in":"Set PIN and sign in"}</button></form>`:""}
+    <details class="small muted"><summary>I'm the commissioner</summary>
+      <form class="row mt-s" onsubmit="event.preventDefault();commishSignIn()">
+        <input id="cpin" type="password" inputmode="numeric" maxlength="6" aria-label="Commissioner PIN" placeholder="6 digit PIN" style="max-width:160px">
+        <button class="btn btn-sm" type="submit">Unlock commissioner tools</button></form></details>
+  </section>`;
+}
+async function signIn(mid,claimed){
+  const pin=(document.getElementById("lgpin4").value||"").trim();
+  if(!/^\d{4}$/.test(pin)) return lgSay("Your PIN is 4 digits.",true);
+  try{
+    if(!claimed) await sbRpc("claim_seat",{p_code:LG.code,p_mid:mid,p_pin:pin});
+    else await sbRpc("manager_login",{p_code:LG.code,p_mid:mid,p_pin:pin});
+    lsSet(LS_LEAGUE,{code:LG.code,mid,pin}); LG.msg=""; LG.draft=null;
+    await loadLeague(true);
+  }catch(e){ lgSay(e.message,true); }
+}
+async function commishSignIn(){
+  const pin=(document.getElementById("cpin").value||"").trim();
+  try{ await sbRpc("commish_login",{p_code:LG.code,p_pin:pin}); setCommish(LG.code,pin); lgSay("Commissioner tools unlocked on this device."); }
+  catch(e){ lgSay(e.message,true); }
+}
+const cpin=()=>(commishFor(LG.code)||{}).pin;
+
+/* Table */
+function lgTable(D){
+  const rows=seasonTable(D), rounds=startedRounds(D);
+  const upd=D.updated?`Points updated ${sydTime(D.updated)} Sydney time.`:"No points yet. They start with the first game on 12 December.";
+  const live=D.fixtures.some(f=>Date.parse(f.starts_at)<=Date.now()&&!f.ended);
+  return `<section class="panel">
+    <div class="row between"><h2>The table</h2><span class="small muted">${live?`<span class="dot"></span> Live. `:""}${upd}</span></div>
+    <div class="scroll mt-s"><table class="lb"><thead><tr><th>#</th><th>Manager</th><th class="num">${rounds.length?"Round "+rounds[rounds.length-1]:"Round"}</th><th class="num">Season</th><th class="num">Purse</th></tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr><td class="num">${i+1}</td>
+      <td><button class="linkbtn" onclick="LG.view=${r.m.id};LG.tab='team';render()">${esc(r.m.name)}</button></td>
+      <td class="num">${pts1(r.round)}</td><td class="num big">${pts1(r.season)}</td><td class="num muted">${money(+r.m.purse_left)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="small muted mt-s">Points come from each starting XI, plus emergencies who cover a starter who didn't play. Rounds run Monday to Sunday, Sydney time. Tap a manager to see their team.</p>
+  </section>
+  ${me()?"":`<div class="mt">${signInPanel(D)}</div>`}`;
+}
+
+/* My Team: the field */
+const GROUPS=[["WK","Wicketkeepers",1],["BAT","Batters",3],["BOWL","Bowlers",3],["FLEX","All-rounders / Flex",4]];
+function groupOf(D,xi){
+  // Each role fills its minimum first; anyone past the minimum, and every all-rounder, sits in Flex.
+  const g={WK:[],BAT:[],BOWL:[],FLEX:[]};
+  xi.forEach(pid=>{ const r=lgP(D,pid).role; if(r!=="AR"&&g[r].length<XI_SHAPE[r]) g[r].push(pid); else g.FLEX.push(pid); });
+  g.FLEX.sort((a,b)=>(lgP(D,a).role==="AR"?0:1)-(lgP(D,b).role==="AR"?0:1));
+  return g;
+}
+function lgTeam(D){
+  const m=me();
+  const mid=LG.view!=null?LG.view:(m?m.mid:null);
+  if(mid==null) return signInPanel(D);
+  const mgr=D.managers.find(x=>x.id===mid); if(!mgr) return `<p class="muted">No such manager.</p>`;
+  const mine=m&&m.mid===mid;
+  const R=openRoundOf(D), rounds=startedRounds(D), cur=rounds[rounds.length-1];
+  const winOpen=D.windows.some(w=>w.status==="open");
+  const saved=lineupFor(D,mid,R);
+  const squad=squadNow(D,mid);
+  if(mine&&(!LG.draft||LG.draft.mid!==mid)){
+    const keep=x=>squad.includes(x);
+    const xi=saved.xi.filter(keep), bench=saved.bench.filter(keep);
+    squad.forEach(p=>{ if(!xi.includes(p)&&!bench.includes(p)) bench.push(p); });
+    LG.draft={mid,xi,bench,dirty:false};
+  }
+  const L=mine?LG.draft:{xi:saved.xi.filter(p=>squad.includes(p)),bench:saved.bench.filter(p=>squad.includes(p))};
+  const g=groupOf(D,L.xi);
+  const roles={WK:0,BAT:0,BOWL:0,AR:0}; L.xi.forEach(p=>roles[lgP(D,p).role]++);
+  const lock=lockTime(D,R);
+  const editable=mine&&!winOpen;
+  const card=(pid,where,idx)=>{
+    const p=lgP(D,pid), rp=cur!=null?playerRound(D,pid,cur):{points:0};
+    const sel=LG.sel&&LG.sel.pid===pid;
+    return `<button id="pc-${pid}" class="pcard ${sel?"sel":""}" style="${clubStyle(p.team)}" ${editable?`onclick="tapCard(${pid},'${where}')"`:`onclick="showPlayer(${pid})"`}
+      aria-pressed="${sel?"true":"false"}" aria-label="${esc(p.name)}, ${ROLE_LABEL[p.role]}, ${where==="bench"?"emergency "+(idx+1):"starting"}">
+      ${where==="bench"?`<span class="eorder">E${idx+1}</span>`:""}
+      <span class="pname">${esc(p.name)}</span>
+      <span class="pmeta">${esc((TEAMS[p.team]||{}).ab||p.team)} &middot; ${p.role} &middot; ${money(pricePaid(D,mid,pid))}</span>
+      <span class="ppts"><span><b>${pts1(rp.points)}</b> rnd</span><span><b>${pts1(playerSeason(D,pid))}</b> season</span></span>
+    </button>`;
+  };
+  const have={WK:0,BAT:0,BOWL:0,AR:0}; squad.forEach(p=>have[lgP(D,p).role]++);
+  const size=Math.min(11,squad.length);   // a short squad fields everyone it has
+  const need=k=>k==="FLEX"?size-Math.min(1,have.WK)-Math.min(3,have.BAT)-Math.min(3,have.BOWL):Math.min(XI_SHAPE[k],have[k]);
+  const shapeOk=L.xi.length===size&&["WK","BAT","BOWL","AR"].every(r=>roles[r]>=Math.min(XI_SHAPE[r],have[r]));
+  const sel=LG.sel;
+  const bar=editable&&sel?`<div class="actionbar" role="toolbar" aria-label="Move ${esc(lgP(D,sel.pid).name)}">
+      <span class="small"><b>${esc(lgP(D,sel.pid).name)}</b> selected. Tap a player on the ${sel.where==="xi"?"bench":"field"} to swap.</span>
+      ${sel.where==="xi"?`<button class="btn btn-sm" onclick="moveSel('bench')">To the bench</button>`
+        :`<button class="btn btn-sm" ${L.xi.length>=Math.min(11,squad.length)?"disabled":""} onclick="moveSel('xi')">To the field</button>
+          <button class="btn btn-sm" onclick="moveSel('up')" aria-label="Move up the emergency order">Up</button>
+          <button class="btn btn-sm" onclick="moveSel('down')" aria-label="Move down the emergency order">Down</button>`}
+      <button class="btn btn-sm btn-quiet" onclick="showPlayer(${sel.pid})">Points</button>
+      <button class="btn btn-sm btn-quiet" onclick="LG.sel=null;render()">Done</button></div>`:"";
+  const tr=cur!=null?teamRound(D,mid,cur):null;
+  return `<section class="stack">
+    <div class="row between">
+      <h2>${mine?"My team":esc(mgr.name)}</h2>
+      <div class="row">${D.managers.length>1?`<select aria-label="View another team" onchange="LG.view=parseInt(this.value);LG.sel=null;render()">
+        ${D.managers.map(x=>`<option value="${x.id}" ${x.id===mid?"selected":""}>${esc(x.name)}${m&&m.mid===x.id?" (you)":""}</option>`).join("")}</select>`:""}</div>
+    </div>
+    <p class="small muted">${winOpen?"The trade window is open, so lineups are locked until it closes."
+      : lock?`This lineup counts from round ${R}. It locks at the first ball, ${sydTime(lock)} Sydney time.`:`This lineup counts from round ${R}.`}
+      ${saved.auto&&!LG.draft?.dirty?" No XI saved yet, so the dearest legal XI plays.":""}
+      ${tr?` Round ${cur} so far: <b>${pts1(tr.total)}</b> points.`:""}</p>
+    <div class="teamgrid">
+      <div class="pitchwrap"><div class="pitch" aria-label="Starting XI">
+        ${GROUPS.map(([k,label])=>`<div class="pgroup">
+          <div class="pillhead"><span>${label}</span><b>${g[k].length}/${need(k)}</b></div>
+          <div class="pcards">${g[k].map(pid=>card(pid,"xi")).join("")||`<span class="empty">Empty</span>`}</div></div>`).join("")}
+        <div class="pitchfoot"><span>Total selected <b>${L.xi.length}/${size}</b></span>
+          ${shapeOk?"":`<span class="small">${L.xi.length!==size?"Pick "+size+" starters. ":""}Needs at least 1 keeper, 3 batters, 3 bowlers and 1 all-rounder${squad.length<13?", or all you have of a role":""}.</span>`}</div>
+      </div></div>
+      <aside class="bench" aria-label="Bench and emergencies">
+        <div class="pillhead"><span>Bench</span><b>${L.bench.length}</b></div>
+        <p class="small muted">Emergencies come in, in this order, for any starter who doesn't play that round.</p>
+        <div class="pcards col">${L.bench.map((pid,i)=>card(pid,"bench",i)).join("")||`<span class="empty">Nobody on the bench</span>`}</div>
+      </aside>
+    </div>
+    ${bar}
+    ${editable?`<div class="row"><button class="btn btn-primary" ${shapeOk&&LG.draft.dirty?"":"disabled"} onclick="saveLineup()">Save lineup</button>
+      ${LG.draft.dirty?`<button class="btn btn-quiet" onclick="LG.draft=null;LG.sel=null;render()">Undo changes</button>`:`<span class="small muted">Saved.</span>`}</div>`:""}
+    ${tr?roundLines(D,tr,cur):""}
+  </section>`;
+}
+function roundLines(D,tr,r){
+  const label={starter:"Started",emergency:"Emergency",waiting:"Yet to play",out:"Didn't play"};
+  return `<section class="panel"><h3>Round ${r} scoring</h3>
+    <div class="scroll mt-s"><table><thead><tr><th>Player</th><th>Status</th><th class="num">Points</th></tr></thead><tbody>
+    ${tr.lines.map(l=>`<tr><td><button class="linkbtn" onclick="showPlayer(${l.pid})">${esc(lgP(D,l.pid).name)}</button></td>
+      <td class="muted">${label[l.kind]}${l.for?" for "+esc(lgP(D,l.for).name):""}</td><td class="num">${pts1(l.points)}</td></tr>`).join("")}
+    <tr><td><b>Total</b></td><td></td><td class="num big">${pts1(tr.total)}</td></tr></tbody></table></div></section>`;
+}
+function tapCard(pid,where){
+  const d=LG.draft, sel=LG.sel;
+  if(sel&&sel.pid===pid){ LG.sel=null; return render(); }
+  if(sel&&sel.where!==where){                       // swap a starter and a bench player
+    const xiP=where==="xi"?pid:sel.pid, bP=where==="bench"?pid:sel.pid;
+    d.xi[d.xi.indexOf(xiP)]=bP; d.bench[d.bench.indexOf(bP)]=xiP; d.dirty=true; LG.sel=null; return render();
+  }
+  LG.sel={pid,where}; render();
+}
+function moveSel(how){
+  const d=LG.draft, s=LG.sel; if(!s)return;
+  if(how==="bench"){ d.xi=d.xi.filter(x=>x!==s.pid); d.bench.push(s.pid); s.where="bench"; }
+  else if(how==="xi"){ if(d.xi.length>=Math.min(11,d.xi.length+d.bench.length))return; d.bench=d.bench.filter(x=>x!==s.pid); d.xi.push(s.pid); s.where="xi"; }
+  else { const i=d.bench.indexOf(s.pid), j=how==="up"?i-1:i+1; if(i<0||j<0||j>=d.bench.length)return; [d.bench[i],d.bench[j]]=[d.bench[j],d.bench[i]]; }
+  d.dirty=true; render();
+}
+async function saveLineup(){
+  const m=me(); if(!m)return;
+  try{ const r=await sbRpc("set_lineup",{p_code:LG.code,p_mid:m.mid,p_pin:m.pin,p_xi:LG.draft.xi,p_bench:LG.draft.bench});
+    LG.draft.dirty=false; LG.sel=null; await loadLeague(true); lgSay("Lineup saved for round "+r+" onwards."); }
+  catch(e){ lgSay(e.message,true); }
+}
+function showPlayer(pid){
+  const D=LG.data, p=lgP(D,pid);
+  LG.modal=()=>{
+    const rows=D.fixtures.filter(f=>f.home===p.team||f.away===p.team).filter(f=>fixtureScore(D,f.id,pid)).map(f=>{
+      const s=fixtureScore(D,f.id,pid);
+      return `<tr><td>R${f.round}</td><td>${esc(f.home===p.team?"v "+f.away:"at "+f.home)}<span class="small muted" style="display:block">${sydTime(f.starts_at)}${s.src==="live"?", provisional":""}</span></td>
+        <td class="small">${(s.breakdown||[]).map(([l,v])=>esc(l)+" "+(v>0?"+":"")+v).join(", ")||"-"}</td><td class="num">${pts1(s.points)}</td></tr>`;}).join("");
+    return `<div class="modal" onclick="if(event.target===this){LG.modal=null;render()}"><div class="panel" role="dialog" aria-label="${esc(p.name)} points">
+      <div class="row between"><h2>${esc(p.name)}</h2><button class="btn btn-sm" onclick="LG.modal=null;render()">Close</button></div>
+      <p class="muted mt-s">${swatch(p.team)} ${esc(p.team)}, ${ROLE_LABEL[p.role]}. Season: <b>${pts1(playerSeason(D,pid))}</b> points.</p>
+      <div class="scroll mt-s"><table><thead><tr><th>Rnd</th><th>Match</th><th>How</th><th class="num">Pts</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="4" class="muted">No points yet.</td></tr>`}</tbody></table></div></div></div>`;
+  };
+  render();
+}
+
+/* Squads */
+function lgSquads(D){
+  return D.managers.map(m=>{
+    const ids=squadNow(D,m.id);
+    return `<section class="panel mt"><div class="row between"><h3>${esc(m.name)}</h3><span class="muted">${ids.length} players, ${money(+m.purse_left)} left</span></div>
+      <div class="scroll mt-s"><table><thead><tr><th>Player</th><th>Club</th><th>Role</th><th class="num">Paid</th><th class="num">Season</th></tr></thead><tbody>
+      ${ids.map(pid=>{const p=lgP(D,pid);return `<tr><td><span class="row" style="gap:var(--s2);flex-wrap:nowrap">${swatch(p.team)}<button class="linkbtn" onclick="showPlayer(${pid})">${esc(p.name)}</button></span></td>
+        <td class="muted">${esc(p.team)}</td><td>${p.role}${p.overseas?", overseas":""}</td><td class="price">${money(pricePaid(D,m.id,pid))}</td><td class="num">${pts1(playerSeason(D,pid))}</td></tr>`;}).join("")}
+      </tbody></table></div></section>`;}).join("");
+}
+
+/* Points by match, plus the commissioner's manual fallback */
+function lgMatches(D){
+  if(!D.fixtures.length) return `<section class="panel"><h2>Points</h2><p class="muted mt-s">The fixture list loads once the points fetcher has run. BBL|16 starts 12 December.</p></section>`;
+  const owned=new Set(D.ownership.filter(o=>!o.released&&o.to_round==null).map(o=>o.player_id));
+  const byRound={}; D.fixtures.forEach(f=>(byRound[f.round]=byRound[f.round]||[]).push(f));
+  return `<section class="panel"><div class="row between"><h2>Points by match</h2>
+      <span class="small muted">${D.updated?"Updated "+sydTime(D.updated):"Not updated yet"}</span></div>
+    <p class="small muted mt-s">Live points come from the scorecard and leave out dot balls until the ball-by-ball file lands, usually a day or two later. Then the match shows Final.</p></section>
+    ${Object.keys(byRound).map(r=>`<section class="panel mt"><h3>Round ${r}</h3><div class="fixtures mt-s">
+      ${byRound[r].map(f=>{ const started=Date.parse(f.starts_at)<=Date.now();
+        const st=f.final?"Final":f.ended?"Finished, provisional":started?"Live":"Upcoming";
+        const n=Object.keys(D.points).filter(k=>k.startsWith(f.id+":")&&owned.has(+k.split(":")[1])).length;
+        return `<button class="fixture" onclick="showFixture('${esc(f.id)}')"><span class="ftitle">${esc(f.home)} v ${esc(f.away)}</span>
+          <span class="small muted">${sydTime(f.starts_at)}</span><span class="tagline ${st==="Live"?"livetag":""}">${st}${n?", "+n+" owned players scored":""}</span></button>`;}).join("")}
+    </div></section>`).join("")}`;
+}
+function showFixture(fid){
+  const D=LG.data, f=D.fixtures.find(x=>x.id===fid); if(!f)return;
+  const owners={}; D.ownership.filter(o=>!o.released&&o.to_round==null).forEach(o=>{ owners[o.player_id]=o.manager_id; });
+  const pool=D.league.players.filter(p=>p.team===f.home||p.team===f.away);
+  const c=cpin();
+  LG.modal=()=>`<div class="modal" onclick="if(event.target===this){LG.modal=null;render()}"><div class="panel" role="dialog" aria-label="Match points">
+    <div class="row between"><h2>${esc(f.home)} v ${esc(f.away)}</h2><button class="btn btn-sm" onclick="LG.modal=null;render()">Close</button></div>
+    <p class="muted mt-s">${sydTime(f.starts_at)}. ${f.final?"Final points.":"Points may still change."} ${c?"You can type over any player's points; clear a box to go back to the feed.":""}</p>
+    <div class="scroll mt-s"><table><thead><tr><th>Player</th><th>Owner</th><th>How</th><th class="num">Pts</th></tr></thead><tbody>
+    ${pool.sort((a,b)=>((fixtureScore(D,fid,b.id)||{}).points||0)-((fixtureScore(D,fid,a.id)||{}).points||0)).map(p=>{
+      const s=fixtureScore(D,fid,p.id); const o=D.managers.find(m=>m.id===owners[p.id]);
+      return `<tr><td><span class="row" style="gap:var(--s2);flex-wrap:nowrap">${swatch(p.team)}${esc(p.name)}</span></td><td class="muted">${o?esc(o.name):"-"}</td>
+        <td class="small">${s?(s.played?(s.breakdown||[]).map(([l,v])=>esc(l)+" "+(v>0?"+":"")+v).join(", "):"Didn't play"):"-"}</td>
+        <td class="num">${c?`<input type="text" inputmode="decimal" aria-label="Points for ${esc(p.name)}" value="${D.overrides[fid+":"+p.id]?esc(D.overrides[fid+":"+p.id].points):""}" placeholder="${s?pts1(s.points):"0"}" onchange="setPoints('${esc(fid)}',${p.id},this.value)" style="width:72px">`:(s?pts1(s.points):"-")}</td></tr>`;}).join("")}
+    </tbody></table></div>
+    ${c?`<details class="mt-s"><summary class="small">Paste points for many players</summary>
+      <p class="small muted mt-s">One per line: player name, points. For example: Mitch Marsh, 64</p>
+      <textarea id="pastepts" rows="6" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2);font:inherit"></textarea>
+      <button class="btn btn-sm mt-s" onclick="pastePoints('${esc(fid)}')">Apply</button></details>`:""}
+  </div></div>`;
+  render();
+}
+async function setPoints(fid,pid,v){
+  const val=String(v).trim()===""?null:parseFloat(v);
+  if(val!==null&&!isFinite(val)) return lgSay("Points must be a number.",true);
+  try{ await sbRpc("commish_set_points",{p_code:LG.code,p_pin:cpin(),p_fixture:fid,p_player:pid,p_points:val,p_note:null}); await loadLeague(true); }
+  catch(e){ lgSay(e.message,true); }
+}
+async function pastePoints(fid){
+  const D=LG.data, lines=(document.getElementById("pastepts").value||"").split(/\n/).map(s=>s.trim()).filter(Boolean);
+  const bad=[]; let n=0;
+  for(const line of lines){
+    const m=/^(.+?)[,\t]\s*(-?\d+(?:\.\d+)?)$/.exec(line); if(!m){ bad.push(line); continue; }
+    const full=m[1].toLowerCase().trim(), bare=full.replace(/\s*\(.*\)/,"").trim();
+    let hits=D.league.players.filter(p=>p.name.toLowerCase()===full);       // exact first: "Tom Rogers (Stars)"
+    if(!hits.length) hits=D.league.players.filter(p=>p.name.toLowerCase().replace(/\s*\(.*\)/,"").trim()===bare);
+    if(hits.length!==1){ bad.push(line); continue; }
+    try{ await sbRpc("commish_set_points",{p_code:LG.code,p_pin:cpin(),p_fixture:fid,p_player:hits[0].id,p_points:parseFloat(m[2]),p_note:"pasted"}); n++; }
+    catch(e){ bad.push(line+" ("+e.message+")"); }
+  }
+  await loadLeague(true);
+  lgSay("Set "+n+" player"+(n===1?"":"s")+"."+(bad.length?" Couldn't place (check the spelling, or add the club in brackets for two players with one name): "+bad.join("; "):""),bad.length>0);
+}
+
+/* Trade window */
+function lgTrades(D){
+  const m=me(), c=cpin(), rules=D.league.rules||{};
+  const w=D.windows.find(x=>["vote","scheduled","open"].includes(x.status));
+  const name=id=>esc((D.managers.find(x=>x.id===id)||{}).name||"?");
+  let head="";
+  if(!w){
+    head=`<p class="muted">The market is shut. Any manager can call a vote to open it; it opens if more than ${rules.votePct??50}% of managers say yes within 24 hours.</p>
+      <div class="row">${m?`<button class="btn btn-primary" onclick="lgAct('call_vote')">Call a vote</button>`:`<button class="btn" onclick="LG.tab='team';render()">Sign in to call a vote</button>`}</div>
+      ${c?`<details class="mt-s"><summary>Schedule a window (commissioner)</summary><div class="row mt-s">
+        <label class="field"><span>Opens</span><input id="wopen" type="datetime-local"></label>
+        <label class="field"><span>Closes</span><input id="wclose" type="datetime-local"></label>
+        <button class="btn" onclick="scheduleWindow()">Schedule</button></div></details>`:""}`;
+  } else if(w.status==="vote"){
+    const votes=w.votes||[]; const yes=votes.filter(v=>v.yes).length, mine=m&&votes.find(v=>v.manager_id===m.mid);
+    head=`<p><b>${name(w.called_by)}</b> called a vote to open the trade window. ${yes} of ${D.managers.length} say yes; it needs more than ${rules.votePct??50}%. Closes ${sydTime(w.vote_closes_at)}.</p>
+      <div class="votes">${D.managers.map(x=>{const v=votes.find(y=>y.manager_id===x.id);return `<span class="chip">${esc(x.name)}: <b>${v?(v.yes?"Yes":"No"):"Not yet"}</b></span>`;}).join("")}</div>
+      ${m?`<div class="row mt-s"><button class="btn ${mine&&mine.yes?"":"btn-primary"}" onclick="lgAct('cast_vote',{p_window:${w.id},p_yes:true})">Vote yes</button>
+        <button class="btn" onclick="lgAct('cast_vote',{p_window:${w.id},p_yes:false})">Vote no</button></div>`:""}
+      ${c?`<button class="btn btn-sm btn-quiet mt-s" onclick="commishAct('commish_end_window')">Cancel the vote</button>`:""}`;
+  } else if(w.status==="scheduled"){
+    head=`<p>The commissioner has a trade window booked: opens ${sydTime(w.opens_at)}, closes ${sydTime(w.closes_at)}.</p>
+      ${c?`<button class="btn btn-sm btn-quiet" onclick="commishAct('commish_end_window')">Cancel it</button>`:""}`;
+  } else {
+    head=`<p><span class="livetag tagline">Open</span> until ${sydTime(w.closes_at)}. Lineups are locked until then. New players score from the first round after it closes; points already won stay with whoever owned the player.</p>
+      ${c?`<p class="small muted mt-s">The window auction opens a room with a new code. Managers join with their league names. ${m?"You bid from your own seat.":"Sign in as a manager first if you want to bid too."}</p>
+        <div class="row mt-s"><button class="btn btn-primary" onclick="startWindowAuction(${w.id})">Run the window auction</button>
+        <button class="btn btn-quiet" onclick="if(confirm('Close the window now?'))commishAct('commish_end_window')">Close the window now</button></div>`:""}`;
+  }
+  const trades=D.trades.filter(t=>w&&t.window_id===w.id);
+  const tradeRow=t=>{
+    const list=ids=>ids.map(p=>esc(lgP(D,p).name)).join(", ")||"nothing";
+    const vetoable=c&&t.status==="accepted"&&Date.parse(t.veto_until)>Date.now();
+    return `<li class="trade"><span><b>${name(t.from_mgr)}</b> gives ${list(t.give)}${+t.cash?" and "+money(+t.cash):""} to <b>${name(t.to_mgr)}</b> for ${list(t.get)}.</span>
+      <span class="tagline">${t.status}${t.status==="accepted"&&t.veto_until?", veto until "+sydTime(t.veto_until):""}</span>
+      ${m&&t.status==="pending"&&t.to_mgr===m.mid?`<span class="row"><button class="btn btn-sm btn-primary" onclick="lgAct('respond_trade',{p_trade:${t.id},p_accept:true})">Accept</button><button class="btn btn-sm" onclick="lgAct('respond_trade',{p_trade:${t.id},p_accept:false})">Reject</button></span>`:""}
+      ${m&&t.status==="pending"&&t.from_mgr===m.mid?`<button class="btn btn-sm btn-quiet" onclick="lgAct('respond_trade',{p_trade:${t.id},p_accept:false})">Withdraw</button>`:""}
+      ${vetoable?`<button class="btn btn-sm btn-danger" onclick="if(confirm('Veto this trade and put everything back?'))commishAct('commish_veto',{p_trade:${t.id}})">Veto</button>`:""}</li>`;
+  };
+  const open=w&&w.status==="open";
+  const mine=m?squadNow(D,m.mid):[];
+  return `<section class="panel stack"><h2>Trade window</h2>${head}
+    <p class="small muted">Rules: releases refund ${rules.refundPct??68}% of the price paid, to the nearest 0.25. The commissioner can veto a trade within ${rules.vetoHours??12} hours. Squad size, the overseas cap, role minimums and enough purse to fill open spots apply after every move.</p>
+    ${c?`<details><summary class="small">Change the rules (commissioner)</summary><div class="rules mt-s">
+      <label class="field"><span>Release refund %</span><input id="r_refund" type="number" min="0" max="100" value="${rules.refundPct??68}"></label>
+      <label class="field"><span>Vote needs more than %</span><input id="r_vote" type="number" min="0" max="99" value="${rules.votePct??50}"></label>
+      <label class="field"><span>Veto hours</span><input id="r_veto" type="number" min="0" max="72" value="${rules.vetoHours??12}"></label>
+      <label class="field"><span>Window length, hours</span><input id="r_len" type="number" min="1" max="336" value="${rules.windowHours??72}"></label>
+      <button class="btn btn-sm" onclick="saveRules()">Save rules</button></div></details>`:""}
+  </section>
+  ${open&&m?`<section class="panel mt stack"><h3>Release a player</h3>
+    <div class="row"><select id="relpid" aria-label="Player to release">${mine.map(p=>`<option value="${p}">${esc(lgP(D,p).name)}, paid ${money(pricePaid(D,m.mid,p))}, refund ${money(Math.round(pricePaid(D,m.mid,p)*(rules.refundPct??68)/100*4)/4)}</option>`).join("")}</select>
+    <button class="btn" onclick="if(confirm('Release this player? They go back in the pool.'))lgAct('release_player',{p_player:parseInt(document.getElementById('relpid').value)})">Release</button></div></section>
+  <section class="panel mt stack"><h3>Offer a trade</h3>${tradeForm(D,m)}</section>`:""}
+  ${trades.length?`<section class="panel mt"><h3>Offers this window</h3><ul class="trades mt-s">${trades.map(tradeRow).join("")}</ul></section>`:""}`;
+}
+function tradeForm(D,m){
+  const others=D.managers.filter(x=>x.id!==m.mid);
+  const to=UI.tradeTo&&others.some(x=>x.id===UI.tradeTo)?UI.tradeTo:(others[0]||{}).id;
+  const box=(ids,cls)=>ids.map(p=>`<label class="check"><input type="checkbox" class="${cls}" value="${p}"> ${esc(lgP(D,p).name)}</label>`).join("");
+  return `<label class="field"><span>With</span><select onchange="UI.tradeTo=parseInt(this.value);render()">${others.map(x=>`<option value="${x.id}" ${x.id===to?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+    <div class="tradecols"><div><p class="label">You give</p>${box(squadNow(D,m.mid),"tgive")}</div><div><p class="label">You get</p>${to!=null?box(squadNow(D,to),"tget"):""}</div></div>
+    <label class="field"><span>Plus cash from you</span><input id="tcash" type="text" inputmode="decimal" value="0" style="max-width:120px"></label>
+    <button class="btn btn-primary" onclick="offerTrade(${to})">Send the offer</button>`;
+}
+async function offerTrade(to){
+  const g=[...document.querySelectorAll(".tgive:checked")].map(x=>+x.value), t=[...document.querySelectorAll(".tget:checked")].map(x=>+x.value);
+  const cash=q25(parseFloat(document.getElementById("tcash").value)||0);
+  lgAct("propose_trade",{p_to:to,p_give:g,p_get:t,p_cash:cash});
+}
+async function lgAct(fn,args){
+  const m=me(); if(!m) return lgSay("Sign in first.",true);
+  try{ await sbRpc(fn,Object.assign({p_code:LG.code,p_mid:m.mid,p_pin:m.pin},args||{})); await loadLeague(true); lgSay("Done."); }
+  catch(e){ lgSay(e.message,true); }
+}
+async function commishAct(fn,args){
+  try{ await sbRpc(fn,Object.assign({p_code:LG.code,p_pin:cpin()},args||{})); await loadLeague(true); lgSay("Done."); }
+  catch(e){ lgSay(e.message,true); }
+}
+function scheduleWindow(){
+  const o=document.getElementById("wopen").value, c=document.getElementById("wclose").value;
+  if(!o||!c) return lgSay("Pick when the window opens and closes.",true);
+  commishAct("commish_schedule_window",{p_opens:new Date(o).toISOString(),p_closes:new Date(c).toISOString()});
+}
+function saveRules(){
+  const v=id=>parseFloat(document.getElementById(id).value);
+  commishAct("commish_set_rules",{p_rules:{refundPct:v("r_refund"),votePct:v("r_vote"),vetoHours:v("r_veto"),windowHours:v("r_len")}});
+}
+
+/* The mid-season auction reuses the auction room: same typed bids, auto hammer and gavel. */
+function startWindowAuction(wid){
+  const D=LG.data, set=Object.assign({},D.league.settings);
+  const held=new Set(D.ownership.filter(o=>!o.released&&o.to_round==null).map(o=>o.player_id));
+  const released=[...new Set(D.ownership.filter(o=>o.released).map(o=>o.player_id))].filter(p=>!held.has(p));
+  const unsold=D.league.players.map(p=>p.id).filter(p=>!held.has(p)&&!released.includes(p));
+  const dear=(a,b)=>(lgP(D,b).basePrice||0)-(lgP(D,a).basePrice||0);
+  const managers=D.managers.map(m=>{ const mm=makeManager(m.id,m.name); mm.squad=squadNow(D,m.id); mm.spent=Math.round((set.budget-(+m.purse_left))*100)/100; mm.connected=false; return mm; });
+  S=newState(managers,set);
+  S.players=JSON.parse(JSON.stringify(D.league.players));
+  // Players already in squads count as sold so the pool and the squad rules see them.
+  S.sold=D.ownership.filter(o=>!o.released&&o.to_round==null).map(o=>({playerId:o.player_id,managerId:o.manager_id,price:+o.price,round:0,pre:true}));
+  S.window={code:LG.code,id:wid,order:[...released.sort(dear),...unsold.sort(dear)]};
+  S.leagueCode=LG.code;
+  // The commissioner bids from their own seat if they are signed in as a manager on this device.
+  const mine=me(), seat=mine?managers.find(m=>m.id===mine.mid):null;
+  NET.myName=seat?seat.name:"Commissioner"; NET.myId=seat?seat.id:0;
+  if(seat)seat.connected=true;
+  clearInterval(LG.timer); screen="home"; history.replaceState(null,"",location.pathname);
+  hostRoom(genCode());
+  sync();
+}
+async function saveWindowBuys(){
+  if(UI.autoSaving||S.leagueSaved)return;
+  const buys=S.sold.filter(x=>!x.pre).map(x=>({playerId:x.playerId,managerId:x.managerId,price:x.price}));
+  UI.autoSaving=true; UI.saveMsg="Saving the window buys..."; render();
+  try{ const n=await sbRpc("commish_record_buys",{p_code:S.window.code,p_pin:(commishFor(S.window.code)||{}).pin,p_buys:buys});
+    S.leagueSaved=S.window.code; UI.saveMsg="Saved "+n+" buy"+(n===1?"":"s")+" to league "+S.window.code+"."; UI.saveBad=false; sync(); }
+  catch(e){ UI.saveMsg="Buys not saved: "+e.message+" Try again from this screen."; UI.saveBad=true; }
+  UI.autoSaving=false; render();
+}
+
+function windowSavePanel(state,canControl){
+  if(!canControl) return `<section class="panel mt"><p class="muted">The commissioner saves these buys to league ${esc(state.window.code)}.</p></section>`;
+  return `<section class="panel mt stack"><h3>Window buys</h3>
+    <p class="small muted">${state.sold.filter(x=>!x.pre).length} players bought. They save to league ${esc(state.window.code)} on their own; use the button if that failed.</p>
+    <div class="row"><button class="btn btn-primary" onclick="S.leagueSaved=null;saveWindowBuys()">${state.leagueSaved?"Saved":"Save the buys"}</button>
+      <a class="btn" href="#league/${esc(state.window.code)}" onclick="openLeague('${esc(state.window.code)}');return false">Back to the league</a>
+      <span class="small ${UI.saveBad?"bad-text":"muted"}" role="status">${esc(UI.saveMsg||"")}</span></div></section>`;
+}
+
+/* Log */
+function lgLog(D){
+  const name=id=>esc((D.managers.find(x=>x.id===id)||{}).name||"");
+  const pl=id=>esc(lgP(D,id).name);
+  const list=ids=>(ids||[]).map(pl).join(", ")||"nothing";
+  const say=e=>{ const d=e.data||{};
+    switch(e.kind){
+      case "auction-saved": return `Auction saved: ${d.sold} players across ${d.managers} squads.`;
+      case "auction-resaved": return `Auction saved again: ${d.sold} players.`;
+      case "vote-called": return `${name(e.manager_id)} called a vote to open the trade window.`;
+      case "vote-failed": return `The vote failed, ${d.yes} of ${d.of} for.`;
+      case "window-scheduled": return `Trade window booked for ${sydTime(d.opens)} to ${sydTime(d.closes)}.`;
+      case "window-open": return `Trade window opened${d.by==="vote"?" by vote":""}.`;
+      case "window-closed": return `Trade window closed. New players score from round ${d.effectiveRound}.`;
+      case "release": return `${name(e.manager_id)} released ${pl(d.player)} (paid ${money(+d.paid)}, refund ${money(+d.refund)}).`;
+      case "trade-offered": return `${name(e.manager_id)} offered ${list(d.give)}${+d.cash?" and "+money(+d.cash):""} to ${name(d.to)} for ${list(d.get)}.`;
+      case "trade-accepted": return `Trade done: ${name(d.from)} sent ${list(d.give)}${+d.cash?" and "+money(+d.cash):""} to ${name(d.to)} for ${list(d.get)}.`;
+      case "trade-rejected": return `${name(e.manager_id)} rejected an offer.`;
+      case "trade-cancelled": return `${name(e.manager_id)} withdrew an offer.`;
+      case "trade-vetoed": return `The commissioner vetoed a trade. Everything went back.`;
+      case "buy": return `${name(e.manager_id)} bought ${pl(d.player)} for ${money(+d.price)} in the window auction.`;
+      case "points-edited": return `The commissioner set ${pl(d.player)} to ${d.points==null?"the feed's points":d.points+" points"} for one match.`;
+      case "pin-reset": return `The commissioner reset ${name(e.manager_id)}'s PIN.`;
+      default: return esc(e.kind);
+    }};
+  const c=cpin();
+  return `<section class="panel"><h2>Transactions</h2>
+    <ul class="log mt-s">${D.log.map(e=>`<li><span class="small muted">${sydTime(e.at)}</span><span>${say(e)}</span></li>`).join("")||`<li class="muted">Nothing yet.</li>`}</ul></section>
+    ${c?`<section class="panel mt stack"><h3>Reset a manager's PIN</h3><div class="row">
+      <select id="resetmid" aria-label="Manager">${D.managers.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
+      <button class="btn" onclick="if(confirm('Reset this PIN? They set a new one next time they sign in.'))commishAct('commish_reset_pin',{p_mid:parseInt(document.getElementById('resetmid').value)})">Reset PIN</button></div></section>`:""}`;
+}
+
+/* How scoring works */
+function lgScoring(){ return scoringPage(); }
+function scoringPage(){
+  const b=SCORING.batting, w=SCORING.bowling, f=SCORING.fielding;
+  const bands=(arr,fmtL)=>arr.map(([t,p],i)=>`<tr><td>${fmtL(t,i,arr)}</td><td class="num">+${p}</td></tr>`).join("");
+  return `<section class="panel stack"><h2>How scoring works</h2>
+    <p class="muted">Only players in the actual playing XI score. Your points each round come from your starting XI, plus emergencies who cover starters who didn't play.</p>
+    <div class="scoregrid">
+      <div><h3>Batting</h3><table><tbody>
+        <tr><td>Each run</td><td class="num">+${b.perRun}</td></tr>
+        ${b.runBonuses.slice().reverse().map(([t,p])=>`<tr><td>${t}+ runs bonus</td><td class="num">+${p}</td></tr>`).join("")}
+        <tr><td colspan="2" class="small muted">Only the biggest runs bonus counts: 100 runs earns 100 plus ${b.runBonuses[0][1]}.</td></tr>
+        <tr><th colspan="2">Strike rate bonus, ${b.srMinRuns}+ runs only</th></tr>
+        ${bands(b.srBands,(t,i,a)=>i===0?`SR ${t} or more`:`SR ${t} to ${(a[i-1][0]-0.01).toFixed(2)}`)}
+      </tbody></table></div>
+      <div><h3>Bowling</h3><table><tbody>
+        <tr><td>Each wicket</td><td class="num">+${w.perWicket}</td></tr>
+        <tr><td>Every 3 wickets in a match</td><td class="num">+${w.perThreeWickets}</td></tr>
+        <tr><td>Each maiden</td><td class="num">+${w.perMaiden}</td></tr>
+        <tr><td>Each dot ball</td><td class="num">+${w.perDot}</td></tr>
+        <tr><td>Each wide or no-ball bowled</td><td class="num">${w.perExtra}</td></tr>
+        <tr><td colspan="2" class="small muted">A wide that runs away for 5 costs ${w.perExtra} once, not per run. Byes and leg byes don't count against the bowler.</td></tr>
+        <tr><th colspan="2">Economy bonus, ${w.econMinBalls/6}+ overs only</th></tr>
+        ${bands(w.econBands,(t,i,a)=>i===0?`${t} or less`:`${(a[i-1][0]+0.01).toFixed(2)} to ${t}`)}
+      </tbody></table></div>
+      <div><h3>Fielding</h3><table><tbody>
+        <tr><td>Catch</td><td class="num">+${f.catch}</td></tr>
+        <tr><td>Run out, each fielder credited</td><td class="num">+${f.runOut}</td></tr>
+        <tr><td>Stumping</td><td class="num">+${f.stumping}</td></tr>
+      </tbody></table></div>
+    </div>
+    <h3>Who counts as playing</h3>
+    <p>The 11 named at the toss. A substitute fielder never scores, even for a catch. A BBL X-factor or replacement player who comes in counts only if they bat or bowl; the player they replace keeps whatever they scored before leaving.</p>
+    <h3>Where the numbers come from</h3>
+    <p class="muted">Live scorecards from CricketData.org about every half hour during a match. Live bowling points leave out dot balls, so they can run a few points short. Exact points come from Cricsheet's ball-by-ball data once it's published, usually a day or two later. Ball-by-ball data from <a href="https://cricsheet.org" target="_blank" rel="noopener">Cricsheet</a>, used under the Open Data Commons Attribution License. If a feed fails, the commissioner can set any player's points by hand.</p>
+  </section>`;
+}
 
 /* ================= THE BALL (one 3D moment, home screen only) =================
    A white Kookaburra-style ball built in code: leather sphere with a generated grain map,
@@ -1289,8 +2264,137 @@ const BALL = (function(){
   return {mount};
 })();
 
+/* ================= THE GAVEL (plays on every screen when the host's sale event arrives) =================
+   Spec, built in code: a turned wooden head (lathe profile, chamfered strike faces, two brass bands)
+   on a turned handle (neck, swell, taper, grip, end knob). Pivot at the grip end; the head's axis is
+   vertical at the strike so its end face lands on the SOLD stamp. Wood grain is a seeded canvas
+   texture. Three.js loads lazily once the auction starts; until it is ready, or if WebGL fails,
+   the SVG below swings instead. Reduced motion: no swing, the stamp and a resting gavel appear. */
+const GAVEL_SVG = `<svg viewBox="0 0 240 240" aria-hidden="true"><g class="gv">
+  <path d="M62 150 L186 70" stroke="#3a1e0f" stroke-width="15" stroke-linecap="round"/>
+  <path d="M62 150 L186 70" stroke="#7a4424" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="188" cy="69" r="11" fill="#7a4424" stroke="#3a1e0f" stroke-width="3"/>
+  <g transform="rotate(-33 58 154)">
+    <rect x="22" y="128" width="72" height="52" rx="6" fill="#6b3a1f" stroke="#2e170b" stroke-width="3"/>
+    <rect x="34" y="126" width="9" height="56" fill="#c9a43a"/><rect x="73" y="126" width="9" height="56" fill="#c9a43a"/>
+  </g></g></svg>`;
+const GAVEL = (function(){
+  const SOURCES=["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js","https://unpkg.com/three@0.128.0/build/three.min.js"];
+  let renderer=null, scene=null, camera=null, pivot=null, shadow=null, ready=false, loading=false, failed=false, raf=0, timers=[];
+  const RAISED=-0.72, STRIKE=0.16;
+  function loadThree(i,done){
+    if(window.THREE)return done(true);
+    if(i>=SOURCES.length)return done(false);
+    const s=document.createElement("script"); s.src=SOURCES[i]; s.async=true;
+    s.onload=()=>done(!!window.THREE); s.onerror=()=>loadThree(i+1,done);
+    document.head.appendChild(s);
+  }
+  function rng(seed){ let x=seed; return ()=>{ x=(x*1664525+1013904223)%4294967296; return x/4294967296; }; }
+  function woodTexture(T){
+    const r=rng(7), w=512, h=256, c=document.createElement("canvas"); c.width=w; c.height=h;
+    const g=c.getContext("2d");
+    g.fillStyle="#6b3a1f"; g.fillRect(0,0,w,h);
+    for(let i=0;i<180;i++){ // long grain lines run along the turned axis (v)
+      const x=r()*w, dark=r()<0.6;
+      g.strokeStyle=dark?"rgba(40,18,6,"+(0.15+r()*0.25)+")":"rgba(160,96,52,"+(0.08+r()*0.15)+")";
+      g.lineWidth=0.6+r()*2.4; g.beginPath(); g.moveTo(x,0);
+      for(let y=0;y<=h;y+=16) g.lineTo(x+Math.sin(y*0.03+i)*3+r()*1.5,y);
+      g.stroke();
+    }
+    const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return t;
+  }
+  function build(){
+    const T=window.THREE, stage=document.getElementById("gavelstage");
+    renderer=new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:"low-power"});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    scene=new T.Scene();
+    camera=new T.PerspectiveCamera(30,1,0.1,40); camera.position.set(0.3,1.1,7.5); camera.lookAt(0.2,0.4,0);
+    scene.add(new T.HemisphereLight(0xfff6e0,0x1a1c1b,0.7));
+    const key=new T.DirectionalLight(0xffffff,1.1); key.position.set(-3,4,5); scene.add(key);
+    const rim=new T.DirectionalLight(0xf5d21f,0.8); rim.position.set(4,1,-3); scene.add(rim);
+    const wood=new T.MeshStandardMaterial({map:woodTexture(T),roughness:0.48,metalness:0.02});
+    const brass=new T.MeshStandardMaterial({color:0xd4ad45,roughness:0.3,metalness:0.6,emissive:0x2a1f05});
+    const V=(x,y)=>new T.Vector2(x,y);
+    // Head, turned about its own axis (Y). Chamfered faces, two shallow grooves.
+    const headProfile=[V(0,-0.64),V(0.25,-0.64),V(0.3,-0.6),V(0.31,-0.42),V(0.29,-0.4),V(0.31,-0.38),V(0.33,0),
+                       V(0.31,0.38),V(0.29,0.4),V(0.31,0.42),V(0.3,0.6),V(0.25,0.64),V(0,0.64)];
+    const head=new T.Mesh(new T.LatheGeometry(headProfile,48),wood);
+    const gavel=new T.Group(); gavel.add(head);
+    [-0.5,0.5].forEach(y=>{ const band=new T.Mesh(new T.CylinderGeometry(0.318,0.318,0.07,48),brass); band.position.y=y; gavel.add(band); });
+    // Handle, turned, from the head (y=0) out to the knob (y=2.45), then laid along +X.
+    const hp=[V(0,0),V(0.085,0),V(0.075,0.15),V(0.1,0.55),V(0.082,1.2),V(0.1,1.7),V(0.118,1.95),V(0.1,2.15),V(0.15,2.3),V(0.1,2.45),V(0,2.46)];
+    const handle=new T.Mesh(new T.LatheGeometry(hp,32),wood);
+    handle.rotation.z=-Math.PI/2; gavel.add(handle);
+    const ferrule=new T.Mesh(new T.CylinderGeometry(0.11,0.11,0.08,32),brass);
+    ferrule.rotation.z=-Math.PI/2; ferrule.position.x=0.36; gavel.add(ferrule);
+    gavel.position.x=-2.4;                // grip end sits on the pivot
+    pivot=new T.Group(); pivot.add(gavel);
+    const yaw=new T.Group(); yaw.rotation.y=-0.42; yaw.position.set(1.15,0.55,0); yaw.add(pivot);
+    scene.add(yaw);
+    // Contact shadow under the strike point.
+    const sc=document.createElement("canvas"); sc.width=sc.height=128; const sg=sc.getContext("2d");
+    const grd=sg.createRadialGradient(64,64,0,64,64,64); grd.addColorStop(0,"rgba(0,0,0,.55)"); grd.addColorStop(1,"rgba(0,0,0,0)");
+    sg.fillStyle=grd; sg.fillRect(0,0,128,128);
+    shadow=new T.Mesh(new T.PlaneGeometry(1.4,0.5),new T.MeshBasicMaterial({map:new T.CanvasTexture(sc),transparent:true,depthWrite:false}));
+    scene.add(shadow);
+    pivot.rotation.z=STRIKE; scene.updateMatrixWorld(true);
+    const face=new T.Vector3(0,-0.66,0); gavel.localToWorld(face); shadow.position.set(face.x,face.y,face.z-0.05);
+    pivot.rotation.z=RAISED;
+    ready=true;
+  }
+  function size(){
+    const stage=document.getElementById("gavelstage"); if(!stage||!renderer)return;
+    const w=stage.clientWidth||240; renderer.setSize(w,w,false);
+  }
+  function pose(a){
+    pivot.rotation.z=a;
+    const k=Math.max(0,Math.min(1,(a-RAISED)/(STRIKE-RAISED)));
+    shadow.material.opacity=0.25+0.75*k; shadow.scale.set(0.6+0.4*k,1,1);
+    renderer.render(scene,camera);
+  }
+  function preload(){
+    if(ready||loading||failed||REDUCED)return;
+    loading=true;
+    const go=()=>loadThree(0,ok=>{ loading=false; if(!ok){failed=true;return;} try{ build(); }catch(e){ failed=true; ready=false; } });
+    if(window.requestIdleCallback) requestIdleCallback(go,{timeout:2500}); else setTimeout(go,400);
+  }
+  function clear(){ timers.forEach(clearTimeout); timers=[]; if(raf){cancelAnimationFrame(raf);raf=0;} }
+  function strike(line){
+    const el=document.getElementById("stamp"), stage=document.getElementById("gavelstage");
+    document.getElementById("stampline").textContent=line;
+    document.getElementById("saleline").textContent="Sold: "+line;
+    clear();
+    el.classList.remove("on","hit","swing"); void el.offsetWidth;
+    const use3d=ready&&!REDUCED&&!document.hidden;
+    if(use3d){ stage.innerHTML=""; stage.appendChild(renderer.domElement); }
+    else if(!stage.querySelector("svg")) stage.innerHTML=GAVEL_SVG;
+    el.classList.add("on");
+    const hit=()=>el.classList.add("hit");
+    if(REDUCED||document.hidden){ hit(); }
+    else if(use3d){
+      size(); pose(RAISED);
+      const t0=performance.now(), SW=300, RB=380;
+      const step=t=>{
+        const e=t-t0;
+        if(e<SW){ const u=e/SW; pose(RAISED+(STRIKE-RAISED)*u*u*u); }
+        else { if(!el.classList.contains("hit"))hit();
+          const u=Math.min(1,(e-SW)/RB); pose(STRIKE-0.16*Math.sin(Math.PI*u)*(1-u*0.5)); if(u>=1){raf=0;return;} }
+        raf=requestAnimationFrame(step);
+      };
+      raf=requestAnimationFrame(step);
+    } else {
+      el.classList.add("swing"); timers.push(setTimeout(hit,300));
+    }
+    timers.push(setTimeout(()=>el.classList.remove("on","hit","swing"),1800));
+  }
+  window.addEventListener("resize",size);
+  return {preload,strike,_state:()=>({ready,failed,loading})};
+})();
+
 /* ================= BOOT ================= */
 window.addEventListener("load",()=>{
+  const lh=/^#league\/([A-Za-z0-9]{4,8})$/.exec(location.hash||"");
+  if(lh){ openLeague(lh[1]); return; }
   if(location.hash && location.hash.length>3 && peerAvailable() && !st()){ goJoin(); }
 });
 render();
